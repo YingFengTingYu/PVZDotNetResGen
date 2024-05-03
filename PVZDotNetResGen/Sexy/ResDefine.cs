@@ -152,15 +152,15 @@ namespace PVZDotNetResGen.Sexy
     public class FontRes : PlatformProperties
     {
         public string? mTags;
-        public bool mIsDefault;
-        public bool mTrueType;
-        public bool mSys;
-        public int mSize;
-        public bool mBold;
-        public bool mItalic;
-        public bool mShadow;
-        public bool mUnderline;
-        public int mStroke;
+        public bool? mIsDefault;
+        public bool? mTrueType;
+        public bool? mSys;
+        public int? mSize;
+        public bool? mBold;
+        public bool? mItalic;
+        public bool? mShadow;
+        public bool? mUnderline;
+        public int? mStroke;
     }
 
     public class MusicRes : PlatformProperties

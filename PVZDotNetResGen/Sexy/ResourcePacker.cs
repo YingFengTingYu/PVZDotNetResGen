@@ -110,6 +110,12 @@ namespace PVZDotNetResGen.Sexy
                         ParseSoundResource(resNode, soundResBase, metaFile);
                         mXmlNodeList[soundResBase.mGroup].AppendChild(resNode);
                     }
+                    else if (resBase is ResBase<FontRes> fontResBase)
+                    {
+                        XmlElement resNode = xmlDocResources.CreateElement("Font");
+                        ParseFontResource(resNode, fontResBase, metaFile);
+                        mXmlNodeList[fontResBase.mGroup].AppendChild(resNode);
+                    }
                 }
             }
             yield return false;
@@ -387,10 +393,17 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
-        private bool ParseFontResourceByProp(XmlElement theElement, FontRes imageRes)
+        private bool ParseFontResourceByProp(XmlElement theElement, FontRes fontRes)
         {
-            SetValueTypeIfExist(theElement, "volume", imageRes.mVolume);
-            SetValueTypeIfExist(theElement, "pan", imageRes.mPan);
+            SetBooleanAsExist(theElement, "isDefault", fontRes.mIsDefault);
+            SetBooleanAsExist(theElement, "truetype", fontRes.mTrueType);
+            SetStringIfExist(theElement, "tags", fontRes.mTags);
+            SetValueTypeIfExist(theElement, "size", fontRes.mSize);
+            SetBooleanAsExist(theElement, "bold", fontRes.mBold);
+            SetBooleanAsExist(theElement, "italic", fontRes.mItalic);
+            SetBooleanAsExist(theElement, "shadow", fontRes.mShadow);
+            SetBooleanAsExist(theElement, "underline", fontRes.mUnderline);
+            SetValueTypeIfExist(theElement, "stroked", fontRes.mStroke);
             return true;
         }
 
