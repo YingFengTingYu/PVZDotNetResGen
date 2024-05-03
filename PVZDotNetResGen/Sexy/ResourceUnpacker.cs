@@ -1,0 +1,927 @@
+﻿using PVZDotNetResGen.Sexy.Atlas;
+using PVZDotNetResGen.Utils.Graphics;
+using PVZDotNetResGen.Utils.Graphics.Bitmap;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Xml;
+using PathNoAtlasInfo = (string Path, string DestPath);
+using PathAndAtlasInfo = (string Path, string DestPath, System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<PVZDotNetResGen.Sexy.Atlas.SpriteItem>> Atlas);
+using System.Diagnostics;
+using PVZDotNetResGen.Utils.JsonHelper;
+using PVZDotNetResGen.Sexy.Image;
+
+namespace PVZDotNetResGen.Sexy
+{
+    public class ResourceUnpacker(string contentFolderPath, string codeFolderPath, string unpackFolderPath)
+    {
+        private readonly string mContentFolderPath = contentFolderPath;
+        private readonly string mCodeFolderPath = codeFolderPath;
+        private readonly string mUnpackFolderPath = unpackFolderPath;
+        private string mDefaultPath = "/";
+        private string mDefaultIdPrefix = "";
+        private readonly List<ResBase> mProgramRes = [];
+        private readonly List<ResBase> mSysFontRes = [];
+        private readonly List<ResLocPair> mResLocs = [];
+        private readonly List<string> mAbsentRes = [];
+        public readonly HashSet<string> mIsAtlas = [];
+
+        private class ResLocPair
+        {
+            public required string mResPath;
+            public readonly List<string> mLocs = [];
+            public Dictionary<string, List<SpriteItem>> mAtlasInfo = [];
+        }
+
+        public string GetContentPath(string path)
+        {
+            return Path.Combine(mContentFolderPath, path);
+        }
+
+        public string GetInfoPath(string path)
+        {
+            return Path.Combine(mUnpackFolderPath, "infos", path);
+        }
+
+        public string GetUnpackPath(string path)
+        {
+            return Path.Combine(mUnpackFolderPath, "resources", path);
+        }
+
+        public string GetUnpackMetaPath(string path)
+        {
+            return Path.Combine(mUnpackFolderPath, "resources", path + ".meta.json");
+        }
+
+        public string GetUnpackMetaPathForSubImage(string path)
+        {
+            return Path.Combine(mUnpackFolderPath, "resources", path + ".subimage.json");
+        }
+
+        public IEnumerator<bool> Update()
+        {
+            if (!Directory.Exists(mUnpackFolderPath))
+            {
+                Directory.CreateDirectory(mUnpackFolderPath);
+            }
+            string imagesPath = GetContentPath("images");
+            foreach (string res in Directory.GetDirectories(imagesPath))
+            {
+                ResLocPair pair = new ResLocPair { mResPath = Path.GetFileName(res) };
+                foreach (string loc in Directory.GetDirectories(res))
+                {
+                    pair.mLocs.Add(Path.GetFileName(loc));
+                }
+                pair.mAtlasInfo = WPAtlasInfoAnalyzer.UnpackAsDictionary(Path.Combine(mCodeFolderPath, "AtlasResources_" + pair.mResPath + ".cs"));
+                foreach (KeyValuePair<string, List<SpriteItem>> spritePair in pair.mAtlasInfo)
+                {
+                    mIsAtlas.Add(spritePair.Key);
+                }
+                mResLocs.Add(pair);
+            }
+            yield return false;
+            // 加载xml并解包文件
+            PackInfo packInfo = new PackInfo();
+            packInfo.mResLocs = new List<ResLocInfo>(mResLocs.Count);
+            for (int i = 0; i < mResLocs.Count; i++)
+            {
+                packInfo.mResLocs.Add(new ResLocInfo { mResPath = mResLocs[i].mResPath, mLocs = [.. mResLocs[i].mLocs] });
+            }
+            string[] xmlPaths = [GetContentPath("resources.xml"), GetContentPath("todresources.xml")];
+            for (int xmlId = 0; xmlId < 2; xmlId++)
+            {
+                XmlDocument xmlDocResources = new XmlDocument();
+                xmlDocResources.Load(Path.Combine(mContentFolderPath, xmlPaths[xmlId]));
+                yield return false;
+                XmlNode? root = xmlDocResources.SelectSingleNode("/ResourceManifest");
+                if (root != null)
+                {
+                    XmlNodeList list = root.ChildNodes;
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        XmlNode? node = list[i];
+                        if (node != null && node.Name == "Resources")
+                        {
+                            string? groupId = node.Attributes?["id"]?.InnerText;
+                            if (groupId != null)
+                            {
+                                XmlNodeList resList = node.ChildNodes;
+                                for (int j = 0; j < resList.Count; j++)
+                                {
+                                    XmlNode? resNode = resList[j];
+                                    if (resNode != null)
+                                    {
+                                        switch (resNode.Name)
+                                        {
+                                            case "SetDefaults":
+                                                ParseSetDefaults(resNode);
+                                                break;
+                                            case "Image":
+                                                string imgId = mDefaultIdPrefix + resNode.Attributes?["id"]?.InnerText;
+                                                if (mIsAtlas.Contains(imgId))
+                                                {
+                                                    ParseAtlasResource(resNode, groupId);
+                                                }
+                                                else
+                                                {
+                                                    ParseImageResource(resNode, groupId);
+                                                }
+                                                break;
+                                            case "Reanim":
+                                                ParseReanimResource(resNode, groupId);
+                                                break;
+                                            case "Particle":
+                                                ParseParticleResource(resNode, groupId);
+                                                break;
+                                            case "Trail":
+                                                ParseTrailResource(resNode, groupId);
+                                                break;
+                                            case "Sound":
+                                                ParseSoundResource(resNode, groupId);
+                                                break;
+                                            case "Font":
+                                                ParseFontResource(resNode, groupId);
+                                                break;
+                                            case "Music":
+                                                ParseMusicResource(resNode, groupId);
+                                                break;
+                                            case "Level":
+                                                ParseLevelResource(resNode, groupId);
+                                                break;
+                                        }
+                                    }
+                                }
+                                packInfo.mGroups.Add(groupId);
+                                yield return false;
+                            }
+                        }
+                    }
+                }
+            }
+            // 处理sys资源和program资源
+            Debug.Assert(mProgramRes.Count == 0);
+            Debug.Assert(mSysFontRes.Count == 0);
+            if (mAbsentRes.Count != 0)
+            {
+                foreach (string absentRes in mAbsentRes)
+                {
+                    Console.WriteLine("File does not exist:" + absentRes);
+                }
+            }
+            // 处理group
+            string jsonPath = GetInfoPath("pack.json");
+            EnsureParentFolderExist(jsonPath);
+            AOTJson.TrySerializeToFile(jsonPath, packInfo);
+        }
+
+        private bool ParseAtlasResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<AtlasRes>? atlasRes, groupId, out string? path))
+            {
+                XmlAttributeCollection? attributes = theElement.Attributes;
+                atlasRes.mUniversalProp.mWidth = 2048;
+                atlasRes.mUniversalProp.mHeight = 2048;
+                atlasRes.mUniversalProp.mExtrude = 1;
+                if (attributes != null)
+                {
+                    atlasRes.mUniversalProp.mNoPal = attributes["nopal"] != null;
+                    atlasRes.mUniversalProp.mA4R4G4B4 = attributes["a4r4g4b4"] != null;
+                    atlasRes.mUniversalProp.mDDSurface = attributes["ddsurface"] != null;
+                    atlasRes.mUniversalProp.mNoBits = attributes["nobits"] != null;
+                    atlasRes.mUniversalProp.mNoBits2D = attributes["nobits2d"] != null;
+                    atlasRes.mUniversalProp.mNoBits3D = attributes["nobits3d"] != null;
+                    atlasRes.mUniversalProp.mA8R8G8B8 = attributes["a8r8g8b8"] != null;
+                    atlasRes.mUniversalProp.mR5G6B5 = attributes["r5g6b5"] != null;
+                    atlasRes.mUniversalProp.mA1R5G5B5 = attributes["a1r5g5b5"] != null;
+                    atlasRes.mUniversalProp.mMinSubdivide = attributes["minsubdivide"] != null;
+                    atlasRes.mUniversalProp.mNoAlpha = attributes["noalpha"] != null;
+                    atlasRes.mUniversalProp.mAlphaColor = 16777215U;
+                    foreach (XmlAttribute current in attributes)
+                    {
+                        if (current.Name == "surface")
+                        {
+                            atlasRes.mUniversalProp.mSurface = (SurfaceFormat)Enum.Parse(typeof(SurfaceFormat), current.InnerText, true);
+                        }
+                        else if (current.Name == "alphaimage")
+                        {
+                            atlasRes.mUniversalProp.mAlphaImage = mDefaultPath + current.InnerText;
+                        }
+                        else if (current.Name == "alphacolor")
+                        {
+                            atlasRes.mUniversalProp.mAlphaColor = Convert.ToUInt32(current.InnerText);
+                        }
+                        else if (current.Name == "variant")
+                        {
+                            atlasRes.mUniversalProp.mVariant = current.InnerText;
+                        }
+                        else if (current.Name == "alphagrid")
+                        {
+                            atlasRes.mUniversalProp.mAlphaGrid = current.InnerText;
+                        }
+                        else if (current.Name == "languageSpecific")
+                        {
+                            atlasRes.mUniversalProp.mLanguageSpecific = Convert.ToBoolean(current.InnerText);
+                        }
+                        else if (current.Name == "format")
+                        {
+                            atlasRes.mUniversalProp.mFormat = (TextureFormat)Enum.Parse(typeof(TextureFormat), current.InnerText, true);
+                        }
+                    }
+                }
+                if (path != null)
+                {
+                    DoLoadAtlas(atlasRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(atlasRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseImageResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<ImageRes>? imageRes, groupId, out string? path))
+            {
+                XmlAttributeCollection? attributes = theElement.Attributes;
+                if (attributes != null)
+                {
+                    imageRes.mUniversalProp.mNoPal = attributes["nopal"] != null;
+                    imageRes.mUniversalProp.mA4R4G4B4 = attributes["a4r4g4b4"] != null;
+                    imageRes.mUniversalProp.mDDSurface = attributes["ddsurface"] != null;
+                    imageRes.mUniversalProp.mNoBits = attributes["nobits"] != null;
+                    imageRes.mUniversalProp.mNoBits2D = attributes["nobits2d"] != null;
+                    imageRes.mUniversalProp.mNoBits3D = attributes["nobits3d"] != null;
+                    imageRes.mUniversalProp.mA8R8G8B8 = attributes["a8r8g8b8"] != null;
+                    imageRes.mUniversalProp.mR5G6B5 = attributes["r5g6b5"] != null;
+                    imageRes.mUniversalProp.mA1R5G5B5 = attributes["a1r5g5b5"] != null;
+                    imageRes.mUniversalProp.mMinSubdivide = attributes["minsubdivide"] != null;
+                    imageRes.mUniversalProp.mNoAlpha = attributes["noalpha"] != null;
+                    imageRes.mUniversalProp.mAlphaColor = 16777215U;
+                    imageRes.mUniversalProp.mRows = 1;
+                    imageRes.mUniversalProp.mCols = 1;
+                    imageRes.mUniversalProp.mAnim = AnimType.None;
+                    foreach (XmlAttribute current in attributes)
+                    {
+                        if (current.Name == "surface")
+                        {
+                            imageRes.mUniversalProp.mSurface = (SurfaceFormat)Enum.Parse(typeof(SurfaceFormat), current.InnerText, true);
+                        }
+                        else if (current.Name == "alphaimage")
+                        {
+                            imageRes.mUniversalProp.mAlphaImage = mDefaultPath + current.InnerText;
+                        }
+                        else if (current.Name == "alphacolor")
+                        {
+                            imageRes.mUniversalProp.mAlphaColor = Convert.ToUInt32(current.InnerText);
+                        }
+                        else if (current.Name == "variant")
+                        {
+                            imageRes.mUniversalProp.mVariant = current.InnerText;
+                        }
+                        else if (current.Name == "alphagrid")
+                        {
+                            imageRes.mUniversalProp.mAlphaGrid = current.InnerText;
+                        }
+                        else if (current.Name == "rows")
+                        {
+                            imageRes.mUniversalProp.mRows = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "cols")
+                        {
+                            imageRes.mUniversalProp.mCols = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "languageSpecific")
+                        {
+                            imageRes.mUniversalProp.mLanguageSpecific = Convert.ToBoolean(current.InnerText);
+                        }
+                        else if (current.Name == "format")
+                        {
+                            imageRes.mUniversalProp.mFormat = (TextureFormat)Enum.Parse(typeof(TextureFormat), current.InnerText, true);
+                        }
+                        else if (current.Name == "anim")
+                        {
+                            switch (current.InnerText)
+                            {
+                                case "none":
+                                    imageRes.mUniversalProp.mAnim = AnimType.None;
+                                    break;
+                                case "once":
+                                    imageRes.mUniversalProp.mAnim = AnimType.Once;
+                                    break;
+                                case "loop":
+                                    imageRes.mUniversalProp.mAnim = AnimType.Loop;
+                                    break;
+                                case "pingpong":
+                                    imageRes.mUniversalProp.mAnim = AnimType.PingPong;
+                                    break;
+                            }
+                        }
+                        else if (current.Name == "framedelay")
+                        {
+                            imageRes.mUniversalProp.mFrameDelay = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "begindelay")
+                        {
+                            imageRes.mUniversalProp.mBeginDelay = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "enddelay")
+                        {
+                            imageRes.mUniversalProp.mEndDelay = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "perframedelay")
+                        {
+                            imageRes.mUniversalProp.mPerFrameDelay = current.InnerText;
+                        }
+                        else if (current.Name == "framemap")
+                        {
+                            imageRes.mUniversalProp.mFrameMap = current.InnerText;
+                        }
+                    }
+                }
+                if (path != null)
+                {
+                    DoLoadImage(imageRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(imageRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseReanimResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<ReanimRes>? reanimRes, groupId, out string? path))
+            {
+                if (path != null)
+                {
+                    DoLoadReanim(reanimRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(reanimRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseParticleResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<ParticleRes>? particleRes, groupId, out string? path))
+            {
+                if (path != null)
+                {
+                    DoLoadParticle(particleRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(particleRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseTrailResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<TrailRes>? trailRes, groupId, out string? path))
+            {
+                if (path != null)
+                {
+                    DoLoadTrail(trailRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(trailRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseSoundResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<SoundRes>? soundRes, groupId, out string? path))
+            {
+                soundRes.mUniversalProp.mVolume = -1.0;
+                soundRes.mUniversalProp.mPan = 0;
+                XmlAttributeCollection? attributes = theElement.Attributes;
+                if (attributes != null)
+                {
+                    foreach (XmlAttribute current in attributes)
+                    {
+                        if (current.Name == "volume")
+                        {
+                            soundRes.mUniversalProp.mVolume = Convert.ToDouble(current.InnerText);
+                        }
+                        if (current.Name == "pan")
+                        {
+                            soundRes.mUniversalProp.mPan = Convert.ToInt32(current.InnerText);
+                        }
+                    }
+                }
+                if (path != null)
+                {
+                    DoLoadSound(soundRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(soundRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseFontResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<FontRes>? fontRes, groupId, out string? path))
+            {
+                XmlAttributeCollection? attributes = theElement.Attributes;
+                if (attributes != null)
+                {
+                    fontRes.mUniversalProp.mSize = -1;
+                    fontRes.mUniversalProp.mBold = false;
+                    fontRes.mUniversalProp.mItalic = false;
+                    fontRes.mUniversalProp.mShadow = false;
+                    fontRes.mUniversalProp.mUnderline = false;
+                    foreach (XmlAttribute current in attributes)
+                    {
+                        if (current.Name == "tags")
+                        {
+                            fontRes.mUniversalProp.mTags = current.InnerText;
+                        }
+                        else if (current.Name == "isDefault")
+                        {
+                            fontRes.mUniversalProp.mIsDefault = true;
+                        }
+                        else if (current.Name == "truetype")
+                        {
+                            fontRes.mUniversalProp.mTrueType = true;
+                        }
+                        else if (current.Name == "size")
+                        {
+                            fontRes.mUniversalProp.mSize = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "bold")
+                        {
+                            fontRes.mUniversalProp.mBold = true;
+                        }
+                        else if (current.Name == "italic")
+                        {
+                            fontRes.mUniversalProp.mItalic = true;
+                        }
+                        else if (current.Name == "shadow")
+                        {
+                            fontRes.mUniversalProp.mShadow = true;
+                        }
+                        else if (current.Name == "underline")
+                        {
+                            fontRes.mUniversalProp.mUnderline = true;
+                        }
+                        else if (current.Name == "stroked")
+                        {
+                            fontRes.mUniversalProp.mStroke = Convert.ToInt32(current.InnerText);
+                        }
+                    }
+                }
+                bool sysFont = false;
+                if (path != null)
+                {
+                    sysFont = path[..5] == "!sys:";
+                }
+                if (sysFont)
+                {
+                    mSysFontRes.Add(fontRes);
+                }
+                else if (path != null)
+                {
+                    DoLoadFont(fontRes, path);
+                }
+                else
+                {
+                    mProgramRes.Add(fontRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseMusicResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<MusicRes>? musicRes, groupId, out string? path))
+            {
+                if (path != null)
+                {
+                    File.Copy(GetContentPath(path), GetUnpackPath(path), true);
+                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(path), musicRes);
+                }
+                else
+                {
+                    mProgramRes.Add(musicRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseLevelResource(XmlNode theElement, string groupId)
+        {
+            if (ParseCommonResource(theElement, out ResBase<LevelRes>? levelRes, groupId, out string? path))
+            {
+                if (path != null)
+                {
+                    File.Copy(GetContentPath(path), GetUnpackPath(path), true);
+                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(path), levelRes);
+                }
+                else
+                {
+                    mProgramRes.Add(levelRes);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ParseCommonResource<T>(XmlNode theElement, [MaybeNullWhen(false)] out ResBase<T> theRes, string groupId, out string? path) where T : PlatformProperties, new()
+        {
+            XmlAttributeCollection? attributes = theElement.Attributes;
+            if (attributes == null)
+            {
+                theRes = null;
+                path = null;
+                return false;
+            }
+            theRes = new ResBase<T>
+            {
+                mId = mDefaultIdPrefix + attributes["id"]?.InnerText,
+                mGroup = groupId,
+                mUniversalProp = new T(),
+            };
+            theRes.mGroup = groupId;
+            string? pathRaw = attributes["path"]?.InnerText;
+            if (pathRaw == null)
+            {
+                path = pathRaw;
+            }
+            else if (pathRaw.Length > 0 && pathRaw[0] == '!')
+            {
+                path = pathRaw;
+                if (pathRaw == "!program")
+                {
+                    path = null;
+                }
+            }
+            else
+            {
+                path = mDefaultPath + pathRaw;
+            }
+            string? unloadGroup = attributes["unloadGroup"]?.InnerText;
+            if (unloadGroup != null)
+            {
+                theRes.mUniversalProp.mUnloadGroup = Convert.ToInt32(unloadGroup);
+            }
+            return true;
+        }
+
+        private bool ParseSetDefaults(XmlNode theElement)
+        {
+            XmlAttributeCollection? attributes = theElement.Attributes;
+            if (attributes != null)
+            {
+                foreach (XmlAttribute current in attributes)
+                {
+                    if (current.Name == "path")
+                    {
+                        mDefaultPath = current.Value + "/";
+                    }
+                    if (current.Name == "idprefix")
+                    {
+                        mDefaultIdPrefix = current.Value;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private void LoadImagePaths(string path, bool languageSpecific, List<PathNoAtlasInfo> pathList)
+        {
+            string? folderName = Path.GetDirectoryName(path);
+            string fileName = Path.GetFileName(path);
+            if (languageSpecific)
+            {
+                if (folderName != null)
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        foreach (string loc in pair.mLocs)
+                        {
+                            pathList.Add((Path.Combine(folderName, pair.mResPath, loc, fileName), Path.Combine(folderName, pair.mResPath, loc, fileName)));
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        foreach (string loc in pair.mLocs)
+                        {
+                            pathList.Add((Path.Combine(pair.mResPath, loc, fileName), Path.Combine(pair.mResPath, loc, fileName)));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (folderName != null)
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        pathList.Add((Path.Combine(folderName, pair.mResPath, fileName), Path.Combine(folderName, pair.mResPath, "universal", fileName)));
+                    }
+                }
+                else
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        pathList.Add((Path.Combine(pair.mResPath, fileName), Path.Combine(pair.mResPath, "universal", fileName)));
+                    }
+                }
+            }
+        }
+
+        private void LoadAtlasPaths(string path, bool languageSpecific, List<PathAndAtlasInfo> pathList)
+        {
+            string? folderName = Path.GetDirectoryName(path);
+            string fileName = Path.GetFileName(path);
+            if (languageSpecific)
+            {
+                if (folderName != null)
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        foreach (string loc in pair.mLocs)
+                        {
+                            pathList.Add((Path.Combine(folderName, pair.mResPath, loc, fileName), Path.Combine("atlases", pair.mResPath, loc, fileName), pair.mAtlasInfo));
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        foreach (string loc in pair.mLocs)
+                        {
+                            pathList.Add((Path.Combine(pair.mResPath, loc, fileName), Path.Combine("atlases", pair.mResPath, loc, fileName), pair.mAtlasInfo));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (folderName != null)
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        pathList.Add((Path.Combine(folderName, pair.mResPath, fileName), Path.Combine("atlases", pair.mResPath, "universal", fileName), pair.mAtlasInfo));
+                    }
+                }
+                else
+                {
+                    foreach (ResLocPair pair in mResLocs)
+                    {
+                        pathList.Add((Path.Combine(pair.mResPath, fileName), Path.Combine("atlases", pair.mResPath, "universal", fileName), pair.mAtlasInfo));
+                    }
+                }
+            }
+        }
+
+        private static string LoadImageExtension(string path, TextureFormat format)
+        {
+            if (format == TextureFormat.Content)
+            {
+                return path + ".xnb";
+            }
+            return path + "." + format.ToString().ToLower();
+        }
+
+        private static string LoadXnbExtension(string path)
+        {
+            return path + ".xnb";
+        }
+
+        private void EnsureParentFolderExist(string filePath)
+        {
+            string? dir = Path.GetDirectoryName(filePath);
+            if (dir != null && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+        }
+
+        private void EnsureThisFolderExist(string filePath)
+        {
+            if (!Directory.Exists(filePath))
+            {
+                Directory.CreateDirectory(filePath);
+            }
+        }
+
+        private static string RemoveContentProfix(string path)
+        {
+            const string CONTENT_PROFIX = "Content/";
+            if (path.StartsWith(CONTENT_PROFIX))
+            {
+                return path[CONTENT_PROFIX.Length..];
+            }
+            return path;
+        }
+
+        private static IDisposableBitmap DecodeImageFromPath(string path, TextureFormat format)
+        {
+            if (format == TextureFormat.Content)
+            {
+                using (FileStream xnbStream = File.OpenRead(path))
+                {
+                    return XnbTexture2D.Shared.ReadOne(Path.GetFileName(path), xnbStream);
+                }
+            }
+            return new StbBitmap(path);
+        }
+
+        private void DoLoadAtlas(ResBase<AtlasRes> atlasRes, string path)
+        {
+            List<PathAndAtlasInfo> pathList = new List<PathAndAtlasInfo>();
+            LoadAtlasPaths(path, atlasRes.mUniversalProp.mLanguageSpecific, pathList);
+            foreach (PathAndAtlasInfo info in pathList)
+            {
+                string atlasPath = info.DestPath;
+                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, atlasRes.mUniversalProp.mFormat));
+                if (File.Exists(imgContentPath))
+                {
+                    EnsureThisFolderExist(GetUnpackPath(atlasPath));
+                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, atlasRes.mUniversalProp.mFormat))
+                    {
+                        RefBitmap bitmapRef = bitmap.AsRefBitmap();
+                        foreach (SpriteItem spirits in info.Atlas[atlasRes.mId])
+                        {
+                            string thisImgPath = Path.Combine(atlasPath, spirits.mId.ToLower());
+                            string thisImgExPath = LoadImageExtension(thisImgPath, TextureFormat.Png);
+                            ResBase<SubImageRes> subImageRes = new ResBase<SubImageRes>
+                            {
+                                mGroup = atlasRes.mGroup,
+                                mId = spirits.mId,
+                                mUniversalProp = new SubImageRes
+                                {
+                                    mParent = atlasRes.mId,
+                                    mRows = spirits.mRows,
+                                    mCols = spirits.mCols,
+                                    mAnim = spirits.mAnim,
+                                    mFrameDelay = spirits.mFrameDelay,
+                                    mBeginDelay = spirits.mBeginDelay,
+                                    mEndDelay = spirits.mEndDelay,
+                                },
+                            };
+                            // 保存图片
+                            using (MemoryPoolBitmap subBitmap = new MemoryPoolBitmap(spirits.mWidth, spirits.mHeight))
+                            {
+                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX, spirits.mY);
+                                subBitmap.SaveAsPng(GetUnpackPath(thisImgExPath));
+                            }
+                            subImageRes.mDiskFormat = DiskFormat.Png;
+                            AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPathForSubImage(thisImgPath), subImageRes);
+                        }
+                    }
+                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(atlasPath), atlasRes);
+                }
+                else
+                {
+                    mAbsentRes.Add(path);
+                }
+            }
+        }
+
+        private void DoLoadImage(ResBase<ImageRes> imageRes, string path)
+        {
+            List<PathNoAtlasInfo> pathList = new List<PathNoAtlasInfo>();
+            LoadImagePaths(path, imageRes.mUniversalProp.mLanguageSpecific == true, pathList);
+            foreach (PathNoAtlasInfo info in pathList)
+            {
+                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, imageRes.mUniversalProp.mFormat ?? TextureFormat.Png));
+                if (File.Exists(imgContentPath))
+                {
+                    string imgPath = LoadImageExtension(info.DestPath, TextureFormat.Png);
+                    string imgUnpackPath = GetUnpackPath(imgPath);
+                    EnsureParentFolderExist(imgUnpackPath);
+                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, imageRes.mUniversalProp.mFormat ?? TextureFormat.Png))
+                    {
+                        bitmap.SaveAsPng(imgUnpackPath);
+                    }
+                    imageRes.mDiskFormat = DiskFormat.Png;
+                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(imgPath), imageRes);
+                }
+                else
+                {
+                    mAbsentRes.Add(path);
+                }
+            }
+        }
+
+        private void DoLoadReanim(ResBase<ReanimRes> reanimRes, string path)
+        {
+            string reanimPath = LoadXnbExtension(path);
+            string reanimContentPath = GetContentPath(reanimPath);
+            if (File.Exists(reanimContentPath))
+            {
+                string reanimUnpackPath = GetUnpackPath(reanimPath);
+                EnsureParentFolderExist(reanimUnpackPath);
+                File.Copy(reanimContentPath, reanimUnpackPath, true);
+                reanimRes.mDiskFormat = DiskFormat.Xnb;
+                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(reanimPath), reanimRes);
+            }
+            else
+            {
+                mAbsentRes.Add(path);
+            }
+        }
+
+        private void DoLoadParticle(ResBase<ParticleRes> particleRes, string path)
+        {
+            string particlePath = LoadXnbExtension(path);
+            string particleContentPath = GetContentPath(particlePath);
+            if (File.Exists(particleContentPath))
+            {
+                string particleUnpackPath = GetUnpackPath(particlePath);
+                EnsureParentFolderExist(particleUnpackPath);
+                File.Copy(particleContentPath, particleUnpackPath, true);
+                particleRes.mDiskFormat = DiskFormat.Xnb;
+                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(particlePath), particleRes);
+            }
+            else
+            {
+                mAbsentRes.Add(path);
+            }
+        }
+
+        private void DoLoadTrail(ResBase<TrailRes> trailRes, string path)
+        {
+            string trailPath = LoadXnbExtension(path);
+            string trailContentPath = GetContentPath(trailPath);
+            if (File.Exists(trailContentPath))
+            {
+                string trailUnpackPath = GetUnpackPath(trailPath);
+                EnsureParentFolderExist(trailUnpackPath);
+                File.Copy(trailContentPath, trailUnpackPath, true);
+                trailRes.mDiskFormat = DiskFormat.Xnb;
+                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(trailPath), trailRes);
+            }
+            else
+            {
+                mAbsentRes.Add(path);
+            }
+        }
+
+        private void DoLoadSound(ResBase<SoundRes> soundRes, string path)
+        {
+            string soundPath = LoadXnbExtension(path);
+            string soundContentPath = GetContentPath(soundPath);
+            if (File.Exists(soundContentPath))
+            {
+                string soundUnpackPath = GetUnpackPath(soundPath);
+                EnsureParentFolderExist(soundUnpackPath);
+                File.Copy(soundContentPath, soundUnpackPath, true);
+                soundRes.mDiskFormat = DiskFormat.Xnb;
+                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(soundPath), soundRes);
+            }
+            else
+            {
+                mAbsentRes.Add(path);
+            }
+        }
+
+        private void DoLoadFont(ResBase<FontRes> fontRes, string path)
+        {
+            string fontPath = RemoveContentProfix(path);
+            string fontContentPath = GetContentPath(fontPath);
+            if (File.Exists(fontContentPath))
+            {
+                string fontUnpackPath = GetUnpackPath(fontPath);
+                EnsureParentFolderExist(fontUnpackPath);
+                File.Copy(fontContentPath, fontUnpackPath, true);
+                fontRes.mDiskFormat = DiskFormat.None;
+                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(fontPath), fontRes);
+            }
+            else
+            {
+                mAbsentRes.Add(path);
+            }
+        }
+    }
+}

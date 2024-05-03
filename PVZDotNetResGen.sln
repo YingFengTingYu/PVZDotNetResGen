@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34723.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PVZDotNetResGen", "PVZDotNetResGen\PVZDotNetResGen.csproj", "{0E40CDEE-C394-4812-977F-56318CF9E0A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PVZDotNetResGen.Tests", "PVZDotNetResGen.Tests\PVZDotNetResGen.Tests.csproj", "{6C799A80-86D4-472E-B4F5-6A27F62FFCD4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0E40CDEE-C394-4812-977F-56318CF9E0A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E40CDEE-C394-4812-977F-56318CF9E0A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E40CDEE-C394-4812-977F-56318CF9E0A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E40CDEE-C394-4812-977F-56318CF9E0A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C799A80-86D4-472E-B4F5-6A27F62FFCD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C799A80-86D4-472E-B4F5-6A27F62FFCD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C799A80-86D4-472E-B4F5-6A27F62FFCD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C799A80-86D4-472E-B4F5-6A27F62FFCD4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {26F5FBB7-A860-4B99-9410-E3849439BB69}
+	EndGlobalSection
+EndGlobal
