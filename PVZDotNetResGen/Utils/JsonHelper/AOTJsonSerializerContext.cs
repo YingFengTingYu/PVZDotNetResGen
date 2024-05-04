@@ -20,6 +20,9 @@ namespace PVZDotNetResGen.Utils.JsonHelper
     [JsonSerializable(typeof(JsonShell<WPAtlasInfoAnalyzer.AtlasJson>))]
     [JsonSerializable(typeof(JsonShell<ResBase>))]
     [JsonSerializable(typeof(JsonShell<PackInfo>))]
+    [JsonSerializable(typeof(JsonShell<BuildInfo>))]
+    [JsonSerializable(typeof(JsonShell<BuildImageInfo>))]
+    [JsonSerializable(typeof(JsonShell<BuildAtlasInfo>))]
     internal partial class AOTJsonSerializerContext : JsonSerializerContext
     {
     }

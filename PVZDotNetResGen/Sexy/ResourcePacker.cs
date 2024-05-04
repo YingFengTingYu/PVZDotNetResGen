@@ -1,10 +1,12 @@
-﻿using PVZDotNetResGen.Utils.JsonHelper;
+﻿using PVZDotNetResGen.Sexy.Image;
+using PVZDotNetResGen.Utils.Graphics;
+using PVZDotNetResGen.Utils.Graphics.Bitmap;
+using PVZDotNetResGen.Utils.JsonHelper;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace PVZDotNetResGen.Sexy
@@ -18,6 +20,7 @@ namespace PVZDotNetResGen.Sexy
         private string mDefaultPath = "/";
         private string mDefaultIdPrefix = "";
         private Dictionary<string, XmlNode> mXmlNodeList = [];
+        private HashSet<string> mExistedImageId = [];
 
         public string GetContentPath(string path)
         {
@@ -68,6 +71,7 @@ namespace PVZDotNetResGen.Sexy
             foreach (string group in packInfo.mGroups)
             {
                 XmlElement xmlElement = xmlDocResources.CreateElement("Resources");
+                SetStringIfExist(xmlElement, "id", group);
                 root.AppendChild(xmlElement);
                 mXmlNodeList.Add(group, xmlElement);
             }
@@ -78,13 +82,31 @@ namespace PVZDotNetResGen.Sexy
                 {
                     if (resBase is ResBase<ImageRes> imageResBase)
                     {
-                        //XmlElement resNode = xmlDocResources.CreateElement("Image");
-                        //ParseImageResource(resNode, imageResBase, GetRecordedPathFromUnpackMetaPath(metaFile));
-                        //mXmlNodeList[imageResBase.mGroup].AppendChild(resNode);
+                        if (mExistedImageId.Contains(imageResBase.mId))
+                        {
+                            ParseImageResource(null, imageResBase, metaFile);
+                        }
+                        else
+                        {
+                            XmlElement resNode = xmlDocResources.CreateElement("Image");
+                            ParseImageResource(resNode, imageResBase, metaFile);
+                            mXmlNodeList[imageResBase.mGroup].AppendChild(resNode);
+                            mExistedImageId.Add(imageResBase.mId);
+                        }
                     }
                     else if (resBase is ResBase<AtlasRes> atlasResBase)
                     {
-
+                        if (mExistedImageId.Contains(atlasResBase.mId))
+                        {
+                            ParseAtlasResource(null, atlasResBase, metaFile);
+                        }
+                        else
+                        {
+                            XmlElement resNode = xmlDocResources.CreateElement("Image");
+                            ParseAtlasResource(resNode, atlasResBase, metaFile);
+                            mXmlNodeList[atlasResBase.mGroup].AppendChild(resNode);
+                            mExistedImageId.Add(atlasResBase.mId);
+                        }
                     }
                     else if (resBase is ResBase<ReanimRes> reanimResBase)
                     {
@@ -117,16 +139,15 @@ namespace PVZDotNetResGen.Sexy
                         mXmlNodeList[fontResBase.mGroup].AppendChild(resNode);
                     }
                 }
+                yield return false;
             }
-            yield return false;
-
-
+            xmlDocResources.Save(GetContentPath("resources.xml"));
         }
 
         private bool ParseCommonResource<T>(XmlElement theElement, ResBase<T> theRes, string path) where T : PlatformProperties, new()
         {
             theElement.SetAttribute("id", theRes.mId);
-            theElement.SetAttribute("path", path);
+            theElement.SetAttribute("path", path.Replace('\\', '/'));
             if (theRes.mUniversalProp.mUnloadGroup != null)
             {
                 theElement.SetAttribute("unloadGroup", Convert.ToString(theRes.mUniversalProp.mUnloadGroup));
@@ -134,12 +155,61 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
-        private bool ParseImageResource(XmlElement theElement, ResBase<ImageRes> imageRes, string path)
+        private bool ParseImageResource(XmlElement? theElement, ResBase<ImageRes> imageRes, string metaPath)
         {
-            if (ParseCommonResource(theElement, imageRes, path))
+            GetImagePathsFromNativeUnpackMetaPath(metaPath, imageRes.mDiskFormat, imageRes.mUniversalProp.mFormat ?? TextureFormat.Png, out string recordedPath, out string contentPath, out string unpackPath, out string tempPath, out string tempMetaPath);
+            bool cont = true;
+            if (theElement != null)
             {
-                ParseImageResourceByProp(theElement, imageRes.mUniversalProp);
+                if (ParseCommonResource(theElement, imageRes, recordedPath))
+                {
+                    cont = ParseImageResourceByProp(theElement, imageRes.mUniversalProp);
+                }
             }
+            if (cont)
+            {
+                bool rebuild = false;
+                BuildImageInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildImageInfo>(tempMetaPath);
+                if (buildInfo == null || !File.Exists(unpackPath))
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mDiskFormat != imageRes.mDiskFormat)
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mFormat != (imageRes.mUniversalProp.mFormat ?? TextureFormat.Png))
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mFormat == TextureFormat.Content && buildInfo.mSurface != (imageRes.mUniversalProp.mSurface ?? SurfaceFormat.Bgra4444))
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mHash != GetHash(unpackPath))
+                {
+                    rebuild = true;
+                }
+                if (rebuild)
+                {
+                    EnsureParentFolderExist(tempPath);
+                    buildInfo = new BuildImageInfo();
+                    DiskFormat aDiskFormat = imageRes.mDiskFormat;
+                    TextureFormat aInGameFormat = imageRes.mUniversalProp.mFormat ?? TextureFormat.Png;
+                    SurfaceFormat aSurfaceFormat = imageRes.mUniversalProp.mSurface ?? SurfaceFormat.Bgra4444;
+                    using (IDisposableBitmap bitmap = DecodeImageFromPath(unpackPath, aDiskFormat))
+                    {
+                        EncodeImageToPath(bitmap, tempPath, aInGameFormat, aSurfaceFormat);
+                    }
+                    buildInfo.mDiskFormat = aDiskFormat;
+                    buildInfo.mFormat = aInGameFormat;
+                    buildInfo.mSurface = aSurfaceFormat;
+                    buildInfo.mHash = GetHash(unpackPath);
+                    AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
+                }
+            }
+            EnsureParentFolderExist(contentPath);
+            File.Copy(tempPath, contentPath, true);
             return true;
         }
 
@@ -199,6 +269,133 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
+        private bool ParseAtlasResource(XmlElement? theElement, ResBase<AtlasRes> imageRes, string metaPath)
+        {
+            GetAtlasPathsFromNativeUnpackMetaPath(metaPath, imageRes.mUniversalProp.mFormat ?? TextureFormat.Png, out string recordedPath, out string contentPath, out string unpackPath, out string tempPath, out string tempMetaPath);
+            bool cont = true;
+            if (theElement != null)
+            {
+                if (ParseCommonResource(theElement, imageRes, recordedPath))
+                {
+                    cont = ParseAtlasResourceByProp(theElement, imageRes.mUniversalProp);
+                }
+            }
+            if (cont)
+            {
+                bool rebuild = false;
+                BuildAtlasInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildAtlasInfo>(tempMetaPath);
+                if (buildInfo == null || !Directory.Exists(unpackPath))
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mWidth != imageRes.mUniversalProp.mWidth || buildInfo.mHeight != imageRes.mUniversalProp.mHeight)
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mFormat != (imageRes.mUniversalProp.mFormat ?? TextureFormat.Png))
+                {
+                    rebuild = true;
+                }
+                else if (buildInfo.mFormat == TextureFormat.Content && buildInfo.mSurface != (imageRes.mUniversalProp.mSurface ?? SurfaceFormat.Bgra4444))
+                {
+                    rebuild = true;
+                }
+                else
+                {
+                    rebuild = true;
+                }
+                if (rebuild)
+                {
+                    EnsureParentFolderExist(tempPath);
+                    buildInfo = new BuildAtlasInfo();
+                    TextureFormat aInGameFormat = imageRes.mUniversalProp.mFormat ?? TextureFormat.Png;
+                    SurfaceFormat aSurfaceFormat = imageRes.mUniversalProp.mSurface ?? SurfaceFormat.Bgra4444;
+                    int width = imageRes.mUniversalProp.mWidth ?? 2048;
+                    int height = imageRes.mUniversalProp.mHeight ?? 2048;
+                    int extrude = imageRes.mUniversalProp.mExtrude ?? 1;
+                    // 创建所有没有meta的图像的meta
+                    List<MaxRectsBinPack.BinRect> sizeList = new List<MaxRectsBinPack.BinRect>();
+                    List<MaxRectsBinPack.BinRect> ansList = new List<MaxRectsBinPack.BinRect>();
+                    foreach (var png in Directory.GetFiles(unpackPath, "*.png", SearchOption.AllDirectories))
+                    {
+                        string pngMetaPath = Path.ChangeExtension(png, ".subimage.json");
+                        ResBase<SubImageRes>? subImageRes = AOTJson.TryDeserializeFromFile<ResBase>(pngMetaPath) as ResBase<SubImageRes>;
+                        if (subImageRes == null)
+                        {
+                            subImageRes = new ResBase<SubImageRes> { mGroup = imageRes.mGroup, mId = Path.GetFileNameWithoutExtension(png).ToUpper(), mUniversalProp = new SubImageRes { mParent = imageRes.mId, mCols = 1, mRows = 1, mAnim = AnimType.None, mBeginDelay = 0, mEndDelay = 0, mFrameDelay = 0 } };
+                            AOTJson.TrySerializeToFile<ResBase>(pngMetaPath, subImageRes);
+                        }
+                        if (!BitmapHelper.Peek(png, out int pngWidth, out int pngHeight))
+                        {
+                            throw new Exception("not a png file: " + png);
+                        }
+                        sizeList.Add(new MaxRectsBinPack.BinRect { width = pngWidth + 2 * extrude, height = pngHeight + 2 * extrude, id = png });
+                    }
+                    MaxRectsBinPack binPack = new MaxRectsBinPack(width, height, false);
+                    int sizeOld = sizeList.Count;
+                    binPack.Insert(sizeList, ansList, MaxRectsBinPack.FreeRectChoiceHeuristic.RectBestAreaFit);
+                    if (sizeOld > ansList.Count)
+                    {
+                        throw new Exception($"The size of atlas {metaPath} is too small!");
+                    }
+                    using (IDisposableBitmap bitmap = new NativeBitmap(width, height))
+                    {
+                        RefBitmap atlasBitmapRef = bitmap.AsRefBitmap();
+                        for (int i = 0; i < ansList.Count; i++)
+                        {
+                            MaxRectsBinPack.BinRect rect = ansList[i];
+                            Debug.Assert(rect.id != null);
+                            using (StbBitmap pngBitmap = new StbBitmap(rect.id))
+                            {
+                                pngBitmap.AsRefBitmap().CopyTo(atlasBitmapRef, 0, 0, rect.x + extrude, rect.y + extrude);
+                            }
+                        }
+                        EncodeImageToPath(bitmap, tempPath, aInGameFormat, aSurfaceFormat);
+                    }
+                    buildInfo.mFormat = aInGameFormat;
+                    buildInfo.mSurface = aSurfaceFormat;
+                    AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
+                }
+            }
+            EnsureParentFolderExist(contentPath);
+            File.Copy(tempPath, contentPath, true);
+            return true;
+        }
+
+        private bool ParseAtlasResourceByProp(XmlElement theElement, AtlasRes atlasRes)
+        {
+            SetBooleanAsExist(theElement, "nopal", atlasRes.mNoPal);
+            SetBooleanAsExist(theElement, "a4r4g4b4", atlasRes.mA4R4G4B4);
+            SetBooleanAsExist(theElement, "ddsurface", atlasRes.mDDSurface);
+            SetBooleanAsExist(theElement, "nobits", atlasRes.mNoBits);
+            SetBooleanAsExist(theElement, "nobits2d", atlasRes.mNoBits2D);
+            SetBooleanAsExist(theElement, "nobits3d", atlasRes.mNoBits3D);
+            SetBooleanAsExist(theElement, "a8r8g8b8", atlasRes.mA8R8G8B8);
+            SetBooleanAsExist(theElement, "r5g6b5", atlasRes.mR5G6B5);
+            SetBooleanAsExist(theElement, "a1r5g5b5", atlasRes.mA1R5G5B5);
+            SetBooleanAsExist(theElement, "minsubdivide", atlasRes.mMinSubdivide);
+            SetBooleanAsExist(theElement, "noalpha", atlasRes.mNoAlpha);
+            SetValueTypeIfExist(theElement, "surface", atlasRes.mSurface);
+            if (atlasRes.mAlphaImage != null)
+            {
+                string alphaImage = atlasRes.mAlphaImage;
+                if (alphaImage.StartsWith('/'))
+                {
+                    alphaImage = alphaImage[1..];
+                }
+                theElement.SetAttribute("alphaimage", alphaImage);
+            }
+            SetValueTypeIfExist(theElement, "alphacolor", atlasRes.mAlphaColor);
+            SetStringIfExist(theElement, "variant", atlasRes.mVariant);
+            SetStringIfExist(theElement, "alphagrid", atlasRes.mAlphaGrid);
+            SetValueTypeIfExist(theElement, "languageSpecific", atlasRes.mLanguageSpecific);
+            SetValueTypeIfExist(theElement, "format", atlasRes.mFormat);
+            SetValueTypeIfExist(theElement, "atlasWidth", atlasRes.mWidth);
+            SetValueTypeIfExist(theElement, "atlasHeight", atlasRes.mHeight);
+            SetValueTypeIfExist(theElement, "atlasExtrude", atlasRes.mExtrude);
+            return true;
+        }
+
         private bool ParseReanimResource(XmlElement theElement, ResBase<ReanimRes> reanimRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
@@ -209,7 +406,7 @@ namespace PVZDotNetResGen.Sexy
                 string unpackPath = GetUnpackPath(path);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
-                if (buildInfo == null)
+                if (buildInfo == null || !File.Exists(unpackPath))
                 {
                     rebuild = true;
                 }
@@ -226,6 +423,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (rebuild)
                 {
+                    EnsureParentFolderExist(tempPath);
                     buildInfo = new BuildInfo();
                     File.Copy(unpackPath, tempPath, true);
                     buildInfo.mDiskFormat = reanimRes.mDiskFormat;
@@ -233,6 +431,9 @@ namespace PVZDotNetResGen.Sexy
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
             }
+            string contentPath = GetContentPath(path);
+            EnsureParentFolderExist(contentPath);
+            File.Copy(GetTempPath(path), contentPath, true);
             return true;
         }
 
@@ -246,7 +447,7 @@ namespace PVZDotNetResGen.Sexy
                 string unpackPath = GetUnpackPath(path);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
-                if (buildInfo == null)
+                if (buildInfo == null || !File.Exists(unpackPath))
                 {
                     rebuild = true;
                 }
@@ -263,6 +464,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (rebuild)
                 {
+                    EnsureParentFolderExist(tempPath);
                     buildInfo = new BuildInfo();
                     File.Copy(unpackPath, tempPath, true);
                     buildInfo.mDiskFormat = particleRes.mDiskFormat;
@@ -270,6 +472,9 @@ namespace PVZDotNetResGen.Sexy
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
             }
+            string contentPath = GetContentPath(path);
+            EnsureParentFolderExist(contentPath);
+            File.Copy(GetTempPath(path), contentPath, true);
             return true;
         }
 
@@ -283,7 +488,7 @@ namespace PVZDotNetResGen.Sexy
                 string unpackPath = GetUnpackPath(path);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
-                if (buildInfo == null)
+                if (buildInfo == null || !File.Exists(unpackPath))
                 {
                     rebuild = true;
                 }
@@ -300,6 +505,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (rebuild)
                 {
+                    EnsureParentFolderExist(tempPath);
                     buildInfo = new BuildInfo();
                     File.Copy(unpackPath, tempPath, true);
                     buildInfo.mDiskFormat = trailRes.mDiskFormat;
@@ -307,6 +513,9 @@ namespace PVZDotNetResGen.Sexy
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
             }
+            string contentPath = GetContentPath(path);
+            EnsureParentFolderExist(contentPath);
+            File.Copy(GetTempPath(path), contentPath, true);
             return true;
         }
 
@@ -321,7 +530,7 @@ namespace PVZDotNetResGen.Sexy
                 string unpackPath = GetUnpackPath(path);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
-                if (buildInfo == null)
+                if (buildInfo == null || !File.Exists(unpackPath))
                 {
                     rebuild = true;
                 }
@@ -338,6 +547,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (rebuild)
                 {
+                    EnsureParentFolderExist(tempPath);
                     buildInfo = new BuildInfo();
                     File.Copy(unpackPath, tempPath, true);
                     buildInfo.mDiskFormat = soundRes.mDiskFormat;
@@ -345,6 +555,9 @@ namespace PVZDotNetResGen.Sexy
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
             }
+            string contentPath = GetContentPath(path);
+            EnsureParentFolderExist(contentPath);
+            File.Copy(GetTempPath(path), contentPath, true);
             return true;
         }
 
@@ -358,7 +571,7 @@ namespace PVZDotNetResGen.Sexy
         private bool ParseFontResource(XmlElement theElement, ResBase<FontRes> fontRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
-            if (ParseCommonResource(theElement, fontRes, RemoveXnbExtension(path)))
+            if (ParseCommonResource(theElement, fontRes, "Content/" + RemoveXnbExtension(path)))
             {
                 ParseFontResourceByProp(theElement, fontRes.mUniversalProp);
                 string tempMetaPath = GetTempMetaPath(path);
@@ -366,7 +579,7 @@ namespace PVZDotNetResGen.Sexy
                 string unpackPath = GetUnpackPath(path);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
-                if (buildInfo == null)
+                if (buildInfo == null || !File.Exists(unpackPath))
                 {
                     rebuild = true;
                 }
@@ -383,6 +596,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (rebuild)
                 {
+                    EnsureParentFolderExist(tempPath);
                     buildInfo = new BuildInfo();
                     File.Copy(unpackPath, tempPath, true);
                     buildInfo.mDiskFormat = fontRes.mDiskFormat;
@@ -390,6 +604,9 @@ namespace PVZDotNetResGen.Sexy
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
             }
+            string contentPath = GetContentPath(path);
+            EnsureParentFolderExist(contentPath);
+            File.Copy(GetTempPath(path), contentPath, true);
             return true;
         }
 
@@ -414,6 +631,86 @@ namespace PVZDotNetResGen.Sexy
                 return path[..^".xnb".Length];
             }
             return path;
+        }
+
+        private void EnsureParentFolderExist(string filePath)
+        {
+            string? dir = Path.GetDirectoryName(filePath);
+            if (dir != null && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+        }
+
+        private void GetAtlasPathsFromNativeUnpackMetaPath(string metaPath, TextureFormat inGameFormat, out string recordedPath, out string contentPath, out string unpackPath, out string tempPath, out string tempMetaPath)
+        {
+            string path = GetRecordedPathFromUnpackMetaPath(metaPath);
+            tempMetaPath = GetTempMetaPath(path);
+            tempPath = LoadImageExtension(GetTempPath(path), inGameFormat);
+            unpackPath = GetUnpackPath(path);
+            recordedPath = Path.Combine("images", Path.GetFileNameWithoutExtension(path));
+            contentPath = LoadImageExtension(GetContentPath(('/' + path).Replace('\\', '/').Replace("/universal/", "/").Replace("/atlases/", "/images/").Replace('/', Path.DirectorySeparatorChar)[1..]), inGameFormat);
+        }
+
+        private void GetImagePathsFromNativeUnpackMetaPath(string metaPath, DiskFormat diskFormat, TextureFormat inGameFormat, out string recordedPath, out string contentPath, out string unpackPath, out string tempPath, out string tempMetaPath)
+        {
+            string path = GetRecordedPathFromUnpackMetaPath(metaPath);
+            tempMetaPath = GetTempMetaPath(path);
+            tempPath = LoadImageExtension(GetTempPath(path), inGameFormat);
+            unpackPath = LoadImageExtension(GetUnpackPath(path), diskFormat);
+            recordedPath = Path.Combine("images", Path.GetFileName(path));
+            contentPath = LoadImageExtension(GetContentPath(path.Replace('\\', '/').Replace("/universal/", "/").Replace('/', Path.DirectorySeparatorChar)), inGameFormat);
+        }
+
+        private static string LoadImageExtension(string path, DiskFormat format)
+        {
+            if (format == DiskFormat.Xnb)
+            {
+                return path + ".xnb";
+            }
+            return path + "." + format.ToString().ToLower();
+        }
+
+        private static string LoadImageExtension(string path, TextureFormat format)
+        {
+            if (format == TextureFormat.Content)
+            {
+                return path + ".xnb";
+            }
+            return path + "." + format.ToString().ToLower();
+        }
+
+        private static IDisposableBitmap DecodeImageFromPath(string path, DiskFormat format)
+        {
+            if (format == DiskFormat.Xnb)
+            {
+                using (FileStream xnbStream = File.OpenRead(path))
+                {
+                    return XnbTexture2D.Shared.ReadOne(Path.GetFileName(path), xnbStream);
+                }
+            }
+            return new StbBitmap(path);
+        }
+
+        private static void EncodeImageToPath(IDisposableBitmap bitmap, string path, TextureFormat format, SurfaceFormat surface)
+        {
+            if (format == TextureFormat.Content)
+            {
+                using (FileStream outStream = File.Create(path))
+                {
+                    XnbTexture2D textureWriter = new XnbTexture2D();
+                    textureWriter.mSurfaceFormat = surface;
+                    textureWriter.WriteOne(bitmap, Path.GetFileName(path), outStream);
+                }
+            }
+            else if (format == TextureFormat.Png)
+            {
+                bitmap.SaveAsPng(path);
+            }
+            else if (format == TextureFormat.Jpg)
+            {
+                bitmap.SaveAsJpg(path);
+            }
         }
 
         private static string GetHash(string file)

@@ -88,76 +88,77 @@ namespace PVZDotNetResGen.Sexy
             {
                 packInfo.mResLocs.Add(new ResLocInfo { mResPath = mResLocs[i].mResPath, mLocs = [.. mResLocs[i].mLocs] });
             }
-            string[] xmlPaths = [GetContentPath("resources.xml"), GetContentPath("todresources.xml")];
-            for (int xmlId = 0; xmlId < 2; xmlId++)
+            XmlDocument xmlDocResources = new XmlDocument();
+            xmlDocResources.Load(Path.Combine(mContentFolderPath, "resources.xml"));
+            yield return false;
+            XmlNode? root = xmlDocResources.SelectSingleNode("/ResourceManifest");
+            if (root != null)
             {
-                XmlDocument xmlDocResources = new XmlDocument();
-                xmlDocResources.Load(Path.Combine(mContentFolderPath, xmlPaths[xmlId]));
-                yield return false;
-                XmlNode? root = xmlDocResources.SelectSingleNode("/ResourceManifest");
-                if (root != null)
+                XmlNodeList list = root.ChildNodes;
+                for (int i = 0; i < list.Count; i++)
                 {
-                    XmlNodeList list = root.ChildNodes;
-                    for (int i = 0; i < list.Count; i++)
+                    XmlNode? node = list[i];
+                    if (node != null && node.Name == "Resources")
                     {
-                        XmlNode? node = list[i];
-                        if (node != null && node.Name == "Resources")
+                        string? groupId = node.Attributes?["id"]?.InnerText;
+                        if (groupId != null)
                         {
-                            string? groupId = node.Attributes?["id"]?.InnerText;
-                            if (groupId != null)
+                            XmlNodeList resList = node.ChildNodes;
+                            for (int j = 0; j < resList.Count; j++)
                             {
-                                XmlNodeList resList = node.ChildNodes;
-                                for (int j = 0; j < resList.Count; j++)
+                                XmlNode? resNode = resList[j];
+                                if (resNode != null)
                                 {
-                                    XmlNode? resNode = resList[j];
-                                    if (resNode != null)
+                                    switch (resNode.Name)
                                     {
-                                        switch (resNode.Name)
-                                        {
-                                            case "SetDefaults":
-                                                ParseSetDefaults(resNode);
-                                                break;
-                                            case "Image":
-                                                string imgId = mDefaultIdPrefix + resNode.Attributes?["id"]?.InnerText;
-                                                if (mIsAtlas.Contains(imgId))
-                                                {
-                                                    ParseAtlasResource(resNode, groupId);
-                                                }
-                                                else
-                                                {
-                                                    ParseImageResource(resNode, groupId);
-                                                }
-                                                break;
-                                            case "Reanim":
-                                                ParseReanimResource(resNode, groupId);
-                                                break;
-                                            case "Particle":
-                                                ParseParticleResource(resNode, groupId);
-                                                break;
-                                            case "Trail":
-                                                ParseTrailResource(resNode, groupId);
-                                                break;
-                                            case "Sound":
-                                                ParseSoundResource(resNode, groupId);
-                                                break;
-                                            case "Font":
-                                                ParseFontResource(resNode, groupId);
-                                                break;
-                                            case "Music":
-                                                ParseMusicResource(resNode, groupId);
-                                                break;
-                                            case "Level":
-                                                ParseLevelResource(resNode, groupId);
-                                                break;
-                                        }
+                                        case "SetDefaults":
+                                            ParseSetDefaults(resNode);
+                                            break;
+                                        case "Image":
+                                            string imgId = mDefaultIdPrefix + resNode.Attributes?["id"]?.InnerText;
+                                            if (mIsAtlas.Contains(imgId))
+                                            {
+                                                ParseAtlasResource(resNode, groupId);
+                                            }
+                                            else
+                                            {
+                                                ParseImageResource(resNode, groupId);
+                                            }
+                                            break;
+                                        case "Sound":
+                                            ParseSoundResource(resNode, groupId);
+                                            break;
+                                        case "Font":
+                                            ParseFontResource(resNode, groupId);
+                                            break;
+                                        case "Music":
+                                            ParseMusicResource(resNode, groupId);
+                                            break;
+                                        case "Level":
+                                            ParseLevelResource(resNode, groupId);
+                                            break;
                                     }
                                 }
-                                packInfo.mGroups.Add(groupId);
-                                yield return false;
                             }
+                            packInfo.mGroups.Add(groupId);
+                            yield return false;
                         }
                     }
                 }
+            }
+            // 处理动画和粒子特效
+            packInfo.mGroups.Add("LoadingReanims");
+            string[] reanims = Directory.GetFiles(GetContentPath("reanim"), "*", SearchOption.AllDirectories);
+            foreach (string reanim in reanims)
+            {
+                DoLoadReanim("LoadingReanims", reanim);
+            }
+            packInfo.mGroups.Add("LoadingParticles");
+            packInfo.mGroups.Add("LoadingTrails");
+            string[] particles = Directory.GetFiles(GetContentPath("particles"), "*", SearchOption.AllDirectories);
+            foreach (string particle in particles)
+            {
+                DoLoadParticleAndTrail("LoadingParticles", particle);
             }
             // 处理sys资源和program资源
             Debug.Assert(mProgramRes.Count == 0);
@@ -349,57 +350,6 @@ namespace PVZDotNetResGen.Sexy
                 else
                 {
                     mProgramRes.Add(imageRes);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        private bool ParseReanimResource(XmlNode theElement, string groupId)
-        {
-            if (ParseCommonResource(theElement, out ResBase<ReanimRes>? reanimRes, groupId, out string? path))
-            {
-                if (path != null)
-                {
-                    DoLoadReanim(reanimRes, path);
-                }
-                else
-                {
-                    mProgramRes.Add(reanimRes);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        private bool ParseParticleResource(XmlNode theElement, string groupId)
-        {
-            if (ParseCommonResource(theElement, out ResBase<ParticleRes>? particleRes, groupId, out string? path))
-            {
-                if (path != null)
-                {
-                    DoLoadParticle(particleRes, path);
-                }
-                else
-                {
-                    mProgramRes.Add(particleRes);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        private bool ParseTrailResource(XmlNode theElement, string groupId)
-        {
-            if (ParseCommonResource(theElement, out ResBase<TrailRes>? trailRes, groupId, out string? path))
-            {
-                if (path != null)
-                {
-                    DoLoadTrail(trailRes, path);
-                }
-                else
-                {
-                    mProgramRes.Add(trailRes);
                 }
                 return true;
             }
@@ -756,20 +706,32 @@ namespace PVZDotNetResGen.Sexy
             return new StbBitmap(path);
         }
 
+        private static int GetCloserPOT(int value)
+        {
+            int s = 1;
+            while (s < value)
+            {
+                s <<= 1;
+            }
+            return s;
+        }
+
         private void DoLoadAtlas(ResBase<AtlasRes> atlasRes, string path)
         {
             List<PathAndAtlasInfo> pathList = new List<PathAndAtlasInfo>();
-            LoadAtlasPaths(path, atlasRes.mUniversalProp.mLanguageSpecific, pathList);
+            LoadAtlasPaths(path, atlasRes.mUniversalProp.mLanguageSpecific == true, pathList);
             foreach (PathAndAtlasInfo info in pathList)
             {
                 string atlasPath = info.DestPath;
-                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, atlasRes.mUniversalProp.mFormat));
+                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, atlasRes.mUniversalProp.mFormat ?? TextureFormat.Png));
                 if (File.Exists(imgContentPath))
                 {
                     EnsureThisFolderExist(GetUnpackPath(atlasPath));
-                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, atlasRes.mUniversalProp.mFormat))
+                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, atlasRes.mUniversalProp.mFormat ?? TextureFormat.Png))
                     {
                         RefBitmap bitmapRef = bitmap.AsRefBitmap();
+                        atlasRes.mUniversalProp.mWidth = GetCloserPOT(bitmapRef.Width);
+                        atlasRes.mUniversalProp.mHeight = GetCloserPOT(bitmapRef.Height);
                         foreach (SpriteItem spirits in info.Atlas[atlasRes.mId])
                         {
                             string thisImgPath = Path.Combine(atlasPath, spirits.mId.ToLower());
@@ -792,7 +754,7 @@ namespace PVZDotNetResGen.Sexy
                             // 保存图片
                             using (MemoryPoolBitmap subBitmap = new MemoryPoolBitmap(spirits.mWidth, spirits.mHeight))
                             {
-                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX, spirits.mY);
+                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX, spirits.mY, 0, 0);
                                 subBitmap.SaveAsPng(GetUnpackPath(thisImgExPath));
                             }
                             subImageRes.mDiskFormat = DiskFormat.Png;
@@ -825,7 +787,7 @@ namespace PVZDotNetResGen.Sexy
                         bitmap.SaveAsPng(imgUnpackPath);
                     }
                     imageRes.mDiskFormat = DiskFormat.Png;
-                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(imgPath), imageRes);
+                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(info.DestPath), imageRes);
                 }
                 else
                 {
@@ -834,15 +796,15 @@ namespace PVZDotNetResGen.Sexy
             }
         }
 
-        private void DoLoadReanim(ResBase<ReanimRes> reanimRes, string path)
+        private void DoLoadReanim(string groupName, string path)
         {
-            string reanimPath = LoadXnbExtension(path);
-            string reanimContentPath = GetContentPath(reanimPath);
-            if (File.Exists(reanimContentPath))
+            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes { mFormat = CompiledFileFormat.Xnb } };
+            string reanimPath = Path.Combine("reanim", Path.GetFileName(path));
+            if (File.Exists(path))
             {
                 string reanimUnpackPath = GetUnpackPath(reanimPath);
                 EnsureParentFolderExist(reanimUnpackPath);
-                File.Copy(reanimContentPath, reanimUnpackPath, true);
+                File.Copy(path, reanimUnpackPath, true);
                 reanimRes.mDiskFormat = DiskFormat.Xnb;
                 AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(reanimPath), reanimRes);
             }
@@ -852,35 +814,17 @@ namespace PVZDotNetResGen.Sexy
             }
         }
 
-        private void DoLoadParticle(ResBase<ParticleRes> particleRes, string path)
+        private void DoLoadParticleAndTrail(string groupName, string path)
         {
-            string particlePath = LoadXnbExtension(path);
-            string particleContentPath = GetContentPath(particlePath);
-            if (File.Exists(particleContentPath))
+            ResBase<ParticleRes> particleRes = new ResBase<ParticleRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ParticleRes { mFormat = CompiledFileFormat.Xnb } };
+            string particlePath = Path.Combine("particles", Path.GetFileName(path));
+            if (File.Exists(path))
             {
                 string particleUnpackPath = GetUnpackPath(particlePath);
                 EnsureParentFolderExist(particleUnpackPath);
-                File.Copy(particleContentPath, particleUnpackPath, true);
+                File.Copy(path, particleUnpackPath, true);
                 particleRes.mDiskFormat = DiskFormat.Xnb;
                 AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(particlePath), particleRes);
-            }
-            else
-            {
-                mAbsentRes.Add(path);
-            }
-        }
-
-        private void DoLoadTrail(ResBase<TrailRes> trailRes, string path)
-        {
-            string trailPath = LoadXnbExtension(path);
-            string trailContentPath = GetContentPath(trailPath);
-            if (File.Exists(trailContentPath))
-            {
-                string trailUnpackPath = GetUnpackPath(trailPath);
-                EnsureParentFolderExist(trailUnpackPath);
-                File.Copy(trailContentPath, trailUnpackPath, true);
-                trailRes.mDiskFormat = DiskFormat.Xnb;
-                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(trailPath), trailRes);
             }
             else
             {

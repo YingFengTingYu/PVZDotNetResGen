@@ -13,6 +13,32 @@ namespace PVZDotNetResGen.Sexy
         public string? mHash;
     }
 
+    public class BuildImageInfo : IJsonVersionCheckable
+    {
+        public static uint JsonVersion => 0;
+
+        public DiskFormat mDiskFormat;
+
+        public SurfaceFormat mSurface;
+
+        public TextureFormat mFormat;
+
+        public string? mHash;
+    }
+
+    public class BuildAtlasInfo : IJsonVersionCheckable
+    {
+        public static uint JsonVersion => 0;
+
+        public SurfaceFormat mSurface;
+
+        public TextureFormat mFormat;
+
+        public int mWidth;
+
+        public int mHeight;
+    }
+
     public class ResLocInfo
     {
         public required string mResPath;
@@ -64,27 +90,27 @@ namespace PVZDotNetResGen.Sexy
 
     public class AtlasRes : PlatformProperties
     {
-        public SurfaceFormat mSurface = SurfaceFormat.Bgra4444;
-        public bool mNoPal;
-        public bool mA4R4G4B4;
-        public bool mDDSurface;
-        public bool mNoBits;
-        public bool mNoBits2D;
-        public bool mNoBits3D;
-        public bool mA8R8G8B8;
-        public bool mR5G6B5;
-        public bool mA1R5G5B5;
-        public bool mMinSubdivide;
-        public bool mNoAlpha;
+        public SurfaceFormat? mSurface = SurfaceFormat.Bgra4444;
+        public bool? mNoPal;
+        public bool? mA4R4G4B4;
+        public bool? mDDSurface;
+        public bool? mNoBits;
+        public bool? mNoBits2D;
+        public bool? mNoBits3D;
+        public bool? mA8R8G8B8;
+        public bool? mR5G6B5;
+        public bool? mA1R5G5B5;
+        public bool? mMinSubdivide;
+        public bool? mNoAlpha;
         public string? mAlphaImage;
-        public uint mAlphaColor;
+        public uint? mAlphaColor;
         public string? mVariant;
         public string? mAlphaGrid;
-        public bool mLanguageSpecific;
-        public TextureFormat mFormat;
-        public int mWidth;
-        public int mHeight;
-        public int mExtrude;
+        public bool? mLanguageSpecific;
+        public TextureFormat? mFormat;
+        public int? mWidth;
+        public int? mHeight;
+        public int? mExtrude;
     }
 
     public class ImageRes : PlatformProperties

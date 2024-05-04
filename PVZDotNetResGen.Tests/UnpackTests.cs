@@ -13,11 +13,7 @@ namespace PVZDotNetResGen.Tests
         [SetUp]
         public void Setup()
         {
-            if (Directory.Exists("files/UnpackTests"))
-            {
-                Directory.Delete("files/UnpackTests", true);
-            }
-            Directory.CreateDirectory("files/UnpackTests");
+            
         }
 
         [TestCase("files/AtlasResources_480x800.csf", "files/UnpackTests/CreateAtlasJson")]
@@ -35,6 +31,18 @@ namespace PVZDotNetResGen.Tests
         {
             ResourceUnpacker unpacker = new ResourceUnpacker(inFolder, codeFolder, outFolder);
             IEnumerator<bool> updater = unpacker.Update();
+            while (updater.MoveNext())
+            {
+
+            }
+        }
+
+        [TestCase("files/UnpackTests/Unpack", "D:\\test\\code", "D:\\test\\real", "D:\\test\\temp")]
+        public void PackResources(string unpackFolder, string codeFolder, string contentFolder, string tempFolder)
+        {
+            Directory.CreateDirectory("files/UnpackTests");
+            ResourcePacker packer = new ResourcePacker(contentFolder, codeFolder, unpackFolder, tempFolder);
+            IEnumerator<bool> updater = packer.Update();
             while (updater.MoveNext())
             {
 

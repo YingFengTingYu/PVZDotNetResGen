@@ -7,9 +7,24 @@ namespace PVZDotNetResGen.Utils.Graphics
 {
     public static class BitmapHelper
     {
-        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, int x, int y)
+        public static bool Peek(string path, out int width, out int height)
         {
-            CopyTo(srcBitmap, destBitmap, new YFRect(x, y, destBitmap.Width, destBitmap.Height), new YFRect(0, 0, destBitmap.Width, destBitmap.Height));
+            using FileStream stream = File.OpenRead(path);
+            StbImageSharp.ImageInfo? info = StbImageSharp.ImageInfo.FromStream(stream);
+            if (info == null)
+            {
+                width = -1;
+                height = -1;
+                return false;
+            }
+            width = info.Value.Width;
+            height = info.Value.Height;
+            return true;
+        }
+
+        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, int srcX, int srcY, int destX, int destY)
+        {
+            CopyTo(srcBitmap, destBitmap, new YFRect(srcX, srcY, destBitmap.Width, destBitmap.Height), new YFRect(destX, destY, destBitmap.Width, destBitmap.Height));
         }
 
         public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, YFRect srcRect)
