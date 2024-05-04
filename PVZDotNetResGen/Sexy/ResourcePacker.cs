@@ -17,10 +17,24 @@ namespace PVZDotNetResGen.Sexy
         private readonly string mCodeFolderPath = codeFolderPath;
         private readonly string mUnpackFolderPath = unpackFolderPath;
         private readonly string mBuildCacheFolderPath = buildCacheFolderPath;
-        private string mDefaultPath = "/";
-        private string mDefaultIdPrefix = "";
         private Dictionary<string, XmlNode> mXmlNodeList = [];
         private HashSet<string> mExistedImageId = [];
+        private Dictionary<string, List<SubImageInCode>> mSubImages = [];
+
+        private class SubImageInCode
+        {
+            public required string mId;
+            public int mX;
+            public int mY;
+            public int mWidth;
+            public int mHeight;
+            public int mRows;
+            public int mCols;
+            public AnimType mAnim;
+            public int mFrameDelay;
+            public int mBeginDelay;
+            public int mEndDelay;
+        }
 
         public string GetContentPath(string path)
         {
@@ -141,7 +155,97 @@ namespace PVZDotNetResGen.Sexy
                 }
                 yield return false;
             }
+            CreateAtlasInfoTo(Path.Combine(mCodeFolderPath, "Atlas_.cs"));
             xmlDocResources.Save(GetContentPath("resources.xml"));
+        }
+
+        private void CreateAtlasInfoTo(string path)
+        {
+            EnsureParentFolderExist(path);
+            using (StreamWriter sw = new StreamWriter(path))
+            {
+                sw.WriteLine("""
+                    using System;
+                    using System.Collections.Generic;
+                    using Sexy;
+
+                    namespace Sexy
+                    {
+                        public/*internal*/ class AtlasResources_480x800 : AtlasResources
+                        {
+                    """);
+                foreach (var pair in mSubImages)
+                {
+                    var list = pair.Value;
+                    sw.Write("        public override void Unpack");
+                    sw.Write(pair.Key);
+                    sw.WriteLine("AtlasImages()");
+                    sw.WriteLine("        {");
+                    sw.WriteLine("            UNPACK_INFO[] array = new UNPACK_INFO[]");
+                    sw.WriteLine("            {");
+                    for (int listIndex = 0; listIndex < list.Count; listIndex++)
+                    {
+                        var item = list[listIndex];
+                        sw.Write("            new UNPACK_INFO(AtlasResources.");
+                        sw.Write(item.mId);
+                        sw.Write(", ");
+                        sw.Write(item.mX);
+                        sw.Write(", ");
+                        sw.Write(item.mY);
+                        sw.Write(", ");
+                        sw.Write(item.mWidth);
+                        sw.Write(", ");
+                        sw.Write(item.mHeight);
+                        sw.Write(", ");
+                        sw.Write(item.mRows);
+                        sw.Write(", ");
+                        sw.Write(item.mCols);
+                        sw.Write(", AnimType.AnimType_");
+                        sw.Write(item.mAnim);
+                        sw.Write(", ");
+                        sw.Write(item.mFrameDelay);
+                        sw.Write(", ");
+                        sw.Write(item.mBeginDelay);
+                        sw.Write(", ");
+                        sw.Write(item.mEndDelay);
+                        if (listIndex != list.Count - 1)
+                        {
+                            sw.WriteLine("),");
+                        }
+                        else
+                        {
+                            sw.WriteLine(")");
+                        }
+                    }
+                    sw.WriteLine("            };");
+                    sw.Write("            mArrays[\"");
+                    sw.Write(pair.Key);
+                    sw.WriteLine("\"] = array;");
+                    sw.WriteLine("            for (int i = 0; i < array.Length; i++)");
+                    sw.WriteLine("            {");
+                    sw.Write("                array[i].mpImage = new Image(Resources.IMAGE_");
+                    sw.Write(pair.Key.ToUpper());
+                    sw.WriteLine(", array[i].mX, array[i].mY, array[i].mWidth, array[i].mHeight);");
+                    sw.WriteLine("                array[i].mpImage.mNumRows = array[i].mRows;");
+                    sw.WriteLine("                array[i].mpImage.mNumCols = array[i].mCols;");
+                    sw.WriteLine("            }");
+                    sw.WriteLine("            int num = 0;");
+                    for (int listIndex = 0; listIndex < list.Count; listIndex++)
+                    {
+                        sw.Write("            AtlasResources.");
+                        sw.Write(list[listIndex].mId);
+                        sw.WriteLine(" = array[num].mpImage;");
+                        sw.WriteLine("            num++;");
+                    }
+                    sw.WriteLine("        }");
+                    sw.WriteLine();
+                }
+                sw.WriteLine("""
+                            public static Dictionary<string, UNPACK_INFO[]> mArrays = new Dictionary<string, UNPACK_INFO[]>();
+                        }
+                    }
+                    """);
+            }
         }
 
         private bool ParseCommonResource<T>(XmlElement theElement, ResBase<T> theRes, string path) where T : PlatformProperties, new()
@@ -300,9 +404,25 @@ namespace PVZDotNetResGen.Sexy
                 {
                     rebuild = true;
                 }
-                else
+                else if (buildInfo.mSubImages == null)
                 {
                     rebuild = true;
+                }
+                else if (buildInfo.mSubImages.Count != Directory.GetFiles(unpackPath, "*.png", SearchOption.TopDirectoryOnly).Length)
+                {
+                    rebuild = true;
+                }
+                else
+                {
+                    foreach (var subImagesInfo in buildInfo.mSubImages)
+                    {
+                        string png = Path.Combine(unpackPath, subImagesInfo.mId?.ToLower() + ".png");
+                        if (subImagesInfo.mHash != GetHash(png))
+                        {
+                            rebuild = true;
+                            break;
+                        }
+                    }
                 }
                 if (rebuild)
                 {
@@ -316,7 +436,7 @@ namespace PVZDotNetResGen.Sexy
                     // 创建所有没有meta的图像的meta
                     List<MaxRectsBinPack.BinRect> sizeList = new List<MaxRectsBinPack.BinRect>();
                     List<MaxRectsBinPack.BinRect> ansList = new List<MaxRectsBinPack.BinRect>();
-                    foreach (var png in Directory.GetFiles(unpackPath, "*.png", SearchOption.AllDirectories))
+                    foreach (var png in Directory.GetFiles(unpackPath, "*.png", SearchOption.TopDirectoryOnly))
                     {
                         string pngMetaPath = Path.ChangeExtension(png, ".subimage.json");
                         ResBase<SubImageRes>? subImageRes = AOTJson.TryDeserializeFromFile<ResBase>(pngMetaPath) as ResBase<SubImageRes>;
@@ -331,6 +451,16 @@ namespace PVZDotNetResGen.Sexy
                         }
                         sizeList.Add(new MaxRectsBinPack.BinRect { width = pngWidth + 2 * extrude, height = pngHeight + 2 * extrude, id = png });
                     }
+                    sizeList.Sort(static (a, b) =>
+                    {
+                        int thisArea = a.width * a.height;
+                        int otherArea = b.width * b.height;
+                        if (thisArea > otherArea)
+                            return -1;
+                        if (thisArea == otherArea)
+                            return 0;
+                        return 1;
+                    });
                     MaxRectsBinPack binPack = new MaxRectsBinPack(width, height, false);
                     int sizeOld = sizeList.Count;
                     binPack.Insert(sizeList, ansList, MaxRectsBinPack.FreeRectChoiceHeuristic.RectBestAreaFit);
@@ -338,6 +468,9 @@ namespace PVZDotNetResGen.Sexy
                     {
                         throw new Exception($"The size of atlas {metaPath} is too small!");
                     }
+                    buildInfo.mSubImages = [];
+                    buildInfo.mWidth = width;
+                    buildInfo.mHeight = height;
                     using (IDisposableBitmap bitmap = new NativeBitmap(width, height))
                     {
                         RefBitmap atlasBitmapRef = bitmap.AsRefBitmap();
@@ -345,16 +478,60 @@ namespace PVZDotNetResGen.Sexy
                         {
                             MaxRectsBinPack.BinRect rect = ansList[i];
                             Debug.Assert(rect.id != null);
+                            BuildAtlasInfo.SubImageBuildInfo buildImageInfo = new BuildAtlasInfo.SubImageBuildInfo();
+                            buildImageInfo.mId = Path.GetFileNameWithoutExtension(rect.id).ToUpper();
+                            buildImageInfo.mX = rect.x;
+                            buildImageInfo.mY = rect.y;
                             using (StbBitmap pngBitmap = new StbBitmap(rect.id))
                             {
                                 pngBitmap.AsRefBitmap().CopyTo(atlasBitmapRef, 0, 0, rect.x + extrude, rect.y + extrude);
+                                buildImageInfo.mWidth = pngBitmap.Width;
+                                buildImageInfo.mHeight = pngBitmap.Height;
                             }
+                            buildImageInfo.mHash = GetHash(rect.id);
+                            buildInfo.mSubImages.Add(buildImageInfo);
                         }
                         EncodeImageToPath(bitmap, tempPath, aInGameFormat, aSurfaceFormat);
                     }
                     buildInfo.mFormat = aInGameFormat;
                     buildInfo.mSurface = aSurfaceFormat;
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
+                }
+                // 构建代码
+                string atlasName = Path.GetFileNameWithoutExtension(contentPath);
+                if (!mSubImages.ContainsKey(atlasName))
+                {
+                    List<SubImageInCode> subImages = [];
+                    var buildInfoSubImages = buildInfo?.mSubImages;
+                    if (buildInfoSubImages != null)
+                    {
+                        foreach (var buildInfoSubImage in buildInfoSubImages)
+                        {
+                            string png = Path.Combine(unpackPath, buildInfoSubImage.mId?.ToLower() + ".png");
+                            string pngMetaPath = Path.ChangeExtension(png, ".meta.json");
+                            ResBase<SubImageRes>? subImageRes = AOTJson.TryDeserializeFromFile<ResBase>(pngMetaPath) as ResBase<SubImageRes>;
+                            if (subImageRes == null)
+                            {
+                                subImageRes = new ResBase<SubImageRes> { mGroup = imageRes.mGroup, mId = Path.GetFileNameWithoutExtension(png).ToUpper(), mUniversalProp = new SubImageRes { mParent = imageRes.mId, mCols = 1, mRows = 1, mAnim = AnimType.None, mBeginDelay = 0, mEndDelay = 0, mFrameDelay = 0 } };
+                                AOTJson.TrySerializeToFile<ResBase>(pngMetaPath, subImageRes);
+                            }
+                            subImages.Add(new SubImageInCode
+                            {
+                                mId = buildInfoSubImage.mId ?? string.Empty,
+                                mX = buildInfoSubImage.mX,
+                                mY = buildInfoSubImage.mY,
+                                mWidth = buildInfoSubImage.mWidth,
+                                mHeight = buildInfoSubImage.mHeight,
+                                mRows = subImageRes.mUniversalProp.mRows,
+                                mCols = subImageRes.mUniversalProp.mCols,
+                                mAnim = subImageRes.mUniversalProp.mAnim,
+                                mBeginDelay = subImageRes.mUniversalProp.mBeginDelay,
+                                mEndDelay = subImageRes.mUniversalProp.mEndDelay,
+                                mFrameDelay = subImageRes.mUniversalProp.mFrameDelay,
+                            });
+                        }
+                    }
+                    mSubImages.Add(atlasName, subImages);
                 }
             }
             EnsureParentFolderExist(contentPath);

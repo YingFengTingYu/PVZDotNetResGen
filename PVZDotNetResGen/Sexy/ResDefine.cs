@@ -28,6 +28,16 @@ namespace PVZDotNetResGen.Sexy
 
     public class BuildAtlasInfo : IJsonVersionCheckable
     {
+        public class SubImageBuildInfo
+        {
+            public string? mId;
+            public int mX;
+            public int mY;
+            public int mWidth;
+            public int mHeight;
+            public string? mHash;
+        }
+
         public static uint JsonVersion => 0;
 
         public SurfaceFormat mSurface;
@@ -37,6 +47,8 @@ namespace PVZDotNetResGen.Sexy
         public int mWidth;
 
         public int mHeight;
+
+        public List<SubImageBuildInfo>? mSubImages;
     }
 
     public class ResLocInfo
