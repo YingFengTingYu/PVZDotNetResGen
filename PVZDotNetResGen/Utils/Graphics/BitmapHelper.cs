@@ -24,13 +24,84 @@ namespace PVZDotNetResGen.Utils.Graphics
 
         public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, int srcX, int srcY, int destX, int destY, int copyWidth, int copyHeight)
         {
-            copyWidth = Math.Min(copyWidth, srcBitmap.Width - srcX);
-            copyHeight = Math.Min(copyHeight, srcBitmap.Height - srcY);
             for (int y = 0; y < copyHeight; y++)
             {
                 Span<YFColor> srcColorLine = srcBitmap[y + srcY].Slice(srcX, copyWidth);
                 Span<YFColor> destColorLine = destBitmap[y + destY].Slice(destX, copyWidth);
                 srcColorLine.CopyTo(destColorLine);
+            }
+        }
+
+        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, int srcX, int srcY, int destX, int destY, int copyWidth, int copyHeight, int border)
+        {
+            // 先画图形
+            for (int y = 0; y < copyHeight; y++)
+            {
+                Span<YFColor> srcColorLine = srcBitmap[y + srcY].Slice(srcX, copyWidth);
+                Span<YFColor> destColorLine = destBitmap[y + destY].Slice(destX, copyWidth);
+                srcColorLine.CopyTo(destColorLine);
+            }
+            // 再补顶角
+            YFColor aColor = srcBitmap[srcX, srcY];
+            for (int y = 0; y < border; y++)
+            {
+                for (int x = 0; x < border; x++)
+                {
+                    destBitmap[destX - border + x, destY - border + y] = aColor;
+                }
+            }
+            aColor = srcBitmap[srcX + copyWidth - 1, srcY];
+            for (int y = 0; y < border; y++)
+            {
+                for (int x = 0; x < border; x++)
+                {
+                    destBitmap[destX + copyWidth + x, destY - border + y] = aColor;
+                }
+            }
+            aColor = srcBitmap[srcX, srcY + copyHeight - 1];
+            for (int y = 0; y < border; y++)
+            {
+                for (int x = 0; x < border; x++)
+                {
+                    destBitmap[destX - border + x, destY + copyHeight + y] = aColor;
+                }
+            }
+            aColor = srcBitmap[srcX + copyWidth - 1, srcY + copyHeight - 1];
+            for (int y = 0; y < border; y++)
+            {
+                for (int x = 0; x < border; x++)
+                {
+                    destBitmap[destX + copyWidth + x, destY + copyHeight + y] = aColor;
+                }
+            }
+            // 再补四周
+            for (int y = 0; y < border; y++)
+            {
+                for (int x = 0; x < copyWidth; x++)
+                {
+                    destBitmap[destX + x, destY - border + y] = srcBitmap[srcX + x, srcY];
+                }
+            }
+            for (int y = 0; y < border; y++)
+            {
+                for (int x = 0; x < copyWidth; x++)
+                {
+                    destBitmap[destX + x, destY + copyHeight + y] = srcBitmap[srcX + x, srcY + copyHeight - 1];
+                }
+            }
+            for (int y = 0; y < copyHeight; y++)
+            {
+                for (int x = 0; x < border; x++)
+                {
+                    destBitmap[destX - border + x, destY + y] = srcBitmap[srcX, srcY + y];
+                }
+            }
+            for (int y = 0; y < copyHeight; y++)
+            {
+                for (int x = 0; x < border; x++)
+                {
+                    destBitmap[destX + copyWidth + x, destY + y] = srcBitmap[srcX + copyWidth - 1, srcY + y];
+                }
             }
         }
 

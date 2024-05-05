@@ -491,7 +491,7 @@ namespace PVZDotNetResGen.Sexy
                             buildImageInfo.mY = rect.y;
                             using (StbBitmap pngBitmap = new StbBitmap(rect.id))
                             {
-                                pngBitmap.AsRefBitmap().CopyTo(atlasBitmapRef, 0, 0, rect.x + extrude, rect.y + extrude, pngBitmap.Width, pngBitmap.Height);
+                                pngBitmap.AsRefBitmap().CopyTo(atlasBitmapRef, 0, 0, rect.x + extrude, rect.y + extrude, pngBitmap.Width, pngBitmap.Height, extrude);
                                 buildImageInfo.mWidth = pngBitmap.Width;
                                 buildImageInfo.mHeight = pngBitmap.Height;
                             }
