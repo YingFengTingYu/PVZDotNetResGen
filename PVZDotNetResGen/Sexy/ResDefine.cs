@@ -93,6 +93,7 @@ namespace PVZDotNetResGen.Sexy
         public T? mLinuxProp;
         public T? mAndroidProp;
         public T? mIOSProp;
+        public List<ResBase<T>>? mSameIds;
     }
 
     public class PlatformProperties

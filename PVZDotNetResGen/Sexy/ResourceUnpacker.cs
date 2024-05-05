@@ -25,7 +25,8 @@ namespace PVZDotNetResGen.Sexy
         private readonly List<ResBase> mSysFontRes = [];
         private readonly List<ResLocPair> mResLocs = [];
         private readonly List<string> mAbsentRes = [];
-        public readonly HashSet<string> mIsAtlas = [];
+        private readonly HashSet<string> mIsAtlas = [];
+        private readonly HashSet<string> mExistedPath = [];
 
         private class ResLocPair
         {
@@ -861,7 +862,26 @@ namespace PVZDotNetResGen.Sexy
                 EnsureParentFolderExist(fontUnpackPath);
                 File.Copy(fontContentPath, fontUnpackPath, true);
                 fontRes.mDiskFormat = DiskFormat.None;
-                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(fontPath), fontRes);
+                string metaPath = GetUnpackMetaPath(fontPath);
+                bool finished = false;
+                if (mExistedPath.Contains(fontUnpackPath))
+                {
+                    ResBase<FontRes>? repeatRes = AOTJson.TryDeserializeFromFile<ResBase>(metaPath) as ResBase<FontRes>;
+                    if (repeatRes != null)
+                    {
+                        (repeatRes.mSameIds ??= []).Add(fontRes);
+                        AOTJson.TrySerializeToFile<ResBase>(metaPath, repeatRes);
+                        finished = true;
+                    }
+                }
+                else
+                {
+                    mExistedPath.Add(fontUnpackPath);
+                }
+                if (!finished)
+                {
+                    AOTJson.TrySerializeToFile<ResBase>(metaPath, fontRes);
+                }
             }
             else
             {
