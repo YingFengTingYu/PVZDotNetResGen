@@ -103,6 +103,7 @@ namespace PVZDotNetResGen.Sexy
     public class AtlasRes : PlatformProperties
     {
         public SurfaceFormat? mSurface = SurfaceFormat.Bgra4444;
+        public string? mAtlasName;
         public bool? mNoPal;
         public bool? mA4R4G4B4;
         public bool? mDDSurface;

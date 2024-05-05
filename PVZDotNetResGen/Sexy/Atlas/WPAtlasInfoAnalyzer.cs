@@ -77,9 +77,9 @@ namespace PVZDotNetResGen.Sexy.Atlas
             }
         }
 
-        public static Dictionary<string, List<SpriteItem>> UnpackAsDictionary(string csFilePath)
+        public static Dictionary<string, (List<SpriteItem>, string)> UnpackAsDictionary(string csFilePath)
         {
-            Dictionary<string, List<SpriteItem>> ans = [];
+            Dictionary<string, (List<SpriteItem>, string)> ans = [];
             using (Stream stream = File.OpenRead(csFilePath))
             {
                 using (StreamReader sr = new StreamReader(stream))
@@ -91,6 +91,7 @@ namespace PVZDotNetResGen.Sexy.Atlas
                         {
                             if (line.StartsWith("        public override void Unpack") && line.EndsWith("AtlasImages()"))
                             {
+                                string atlasName = string.Empty;
                                 List<SpriteItem> items = new List<SpriteItem>();
                                 IdLine(sr, "        {");
                                 IdLine(sr, "            UNPACK_INFO[] array = new UNPACK_INFO[]");
@@ -123,17 +124,23 @@ namespace PVZDotNetResGen.Sexy.Atlas
                                         throw new Exception(nextLine);
                                     }
                                 }
-                                nextLine = sr.ReadLine();
-                                nextLine = sr.ReadLine();
-                                nextLine = sr.ReadLine();
-                                nextLine = sr.ReadLine();
                                 int startIndex;
+                                nextLine = sr.ReadLine();
+                                if (nextLine != null && (startIndex = nextLine.IndexOf("            mArrays[\"")) != -1)
+                                {
+                                    nextLine = nextLine[(startIndex + "            mArrays[\"".Length)..];
+                                    startIndex = nextLine.IndexOf('"');
+                                    atlasName = nextLine[..startIndex];
+                                }
+                                nextLine = sr.ReadLine();
+                                nextLine = sr.ReadLine();
+                                nextLine = sr.ReadLine();
                                 if (nextLine != null && (startIndex = nextLine.IndexOf("new Image(Resources.")) != -1)
                                 {
                                     nextLine = nextLine[(startIndex + "new Image(Resources.".Length)..];
                                     startIndex = nextLine.IndexOf(',');
                                     nextLine = nextLine[..startIndex];
-                                    ans.Add(nextLine, items);
+                                    ans.Add(nextLine, (items, atlasName));
                                 }
                                 else
                                 {

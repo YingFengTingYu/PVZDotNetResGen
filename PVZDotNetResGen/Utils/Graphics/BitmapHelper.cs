@@ -22,28 +22,14 @@ namespace PVZDotNetResGen.Utils.Graphics
             return true;
         }
 
-        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, int srcX, int srcY, int destX, int destY)
+        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, int srcX, int srcY, int destX, int destY, int copyWidth, int copyHeight)
         {
-            CopyTo(srcBitmap, destBitmap, new YFRect(srcX, srcY, destBitmap.Width, destBitmap.Height), new YFRect(destX, destY, destBitmap.Width, destBitmap.Height));
-        }
-
-        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, YFRect srcRect)
-        {
-            CopyTo(srcBitmap, destBitmap, srcRect, new YFRect(0, 0, destBitmap.Width, destBitmap.Height));
-        }
-
-        public static void CopyTo(this RefBitmap srcBitmap, RefBitmap destBitmap, YFRect srcRect, YFRect destRect)
-        {
-            int copyWidth = Math.Min(srcRect.mWidth, destRect.mWidth);
-            copyWidth = Math.Min(copyWidth, srcBitmap.Width - srcRect.mX);
-            copyWidth = Math.Min(copyWidth, destBitmap.Width - destRect.mX);
-            int copyHeight = Math.Min(srcRect.mHeight, destRect.mHeight);
-            copyHeight = Math.Min(copyHeight, srcBitmap.Height - srcRect.mY);
-            copyHeight = Math.Min(copyHeight, destBitmap.Height - destRect.mY);
+            copyWidth = Math.Min(copyWidth, srcBitmap.Width - srcX);
+            copyHeight = Math.Min(copyHeight, srcBitmap.Height - srcY);
             for (int y = 0; y < copyHeight; y++)
             {
-                Span<YFColor> srcColorLine = srcBitmap[y + srcRect.mY].Slice(srcRect.mX, copyWidth);
-                Span<YFColor> destColorLine = destBitmap[y + destRect.mY].Slice(destRect.mX, copyWidth);
+                Span<YFColor> srcColorLine = srcBitmap[y + srcY].Slice(srcX, copyWidth);
+                Span<YFColor> destColorLine = destBitmap[y + destY].Slice(destX, copyWidth);
                 srcColorLine.CopyTo(destColorLine);
             }
         }

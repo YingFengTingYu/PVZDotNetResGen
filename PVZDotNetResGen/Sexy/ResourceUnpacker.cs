@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Xml;
 using PathNoAtlasInfo = (string Path, string DestPath);
-using PathAndAtlasInfo = (string Path, string DestPath, System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<PVZDotNetResGen.Sexy.Atlas.SpriteItem>> Atlas);
+using PathAndAtlasInfo = (string Path, string DestPath, System.Collections.Generic.Dictionary<string, (System.Collections.Generic.List<PVZDotNetResGen.Sexy.Atlas.SpriteItem>, string)> Atlas);
 using System.Diagnostics;
 using PVZDotNetResGen.Utils.JsonHelper;
 using PVZDotNetResGen.Sexy.Image;
@@ -31,7 +31,7 @@ namespace PVZDotNetResGen.Sexy
         {
             public required string mResPath;
             public readonly List<string> mLocs = [];
-            public Dictionary<string, List<SpriteItem>> mAtlasInfo = [];
+            public Dictionary<string, (List<SpriteItem>, string)> mAtlasInfo = [];
         }
 
         public string GetContentPath(string path)
@@ -74,7 +74,7 @@ namespace PVZDotNetResGen.Sexy
                     pair.mLocs.Add(Path.GetFileName(loc));
                 }
                 pair.mAtlasInfo = WPAtlasInfoAnalyzer.UnpackAsDictionary(Path.Combine(mCodeFolderPath, "AtlasResources_" + pair.mResPath + ".cs"));
-                foreach (KeyValuePair<string, List<SpriteItem>> spritePair in pair.mAtlasInfo)
+                foreach (var spritePair in pair.mAtlasInfo)
                 {
                     mIsAtlas.Add(spritePair.Key);
                 }
@@ -732,7 +732,8 @@ namespace PVZDotNetResGen.Sexy
                         RefBitmap bitmapRef = bitmap.AsRefBitmap();
                         atlasRes.mUniversalProp.mWidth = GetCloserPOT(bitmapRef.Width);
                         atlasRes.mUniversalProp.mHeight = GetCloserPOT(bitmapRef.Height);
-                        foreach (SpriteItem spirits in info.Atlas[atlasRes.mId])
+                        atlasRes.mUniversalProp.mAtlasName = info.Atlas[atlasRes.mId].Item2;
+                        foreach (SpriteItem spirits in info.Atlas[atlasRes.mId].Item1)
                         {
                             string thisImgPath = Path.Combine(atlasPath, spirits.mId.ToLower());
                             string thisImgExPath = LoadImageExtension(thisImgPath, TextureFormat.Png);
@@ -754,7 +755,7 @@ namespace PVZDotNetResGen.Sexy
                             // 保存图片
                             using (MemoryPoolBitmap subBitmap = new MemoryPoolBitmap(spirits.mWidth, spirits.mHeight))
                             {
-                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX, spirits.mY, 0, 0);
+                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX - 1, spirits.mY - 1, 0, 0, spirits.mWidth, spirits.mHeight);
                                 subBitmap.SaveAsPng(GetUnpackPath(thisImgExPath));
                             }
                             subImageRes.mDiskFormat = DiskFormat.Png;
