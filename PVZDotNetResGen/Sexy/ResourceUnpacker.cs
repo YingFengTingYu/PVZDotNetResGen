@@ -800,7 +800,7 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadReanim(string groupName, string path)
         {
-            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes { mFormat = CompiledFileFormat.Xnb } };
+            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "REANIM" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes { mFormat = CompiledFileFormat.Xnb } };
             string reanimPath = Path.Combine("reanim", Path.GetFileName(path));
             if (File.Exists(path))
             {
@@ -818,7 +818,7 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadParticleAndTrail(string groupName, string path)
         {
-            ResBase<ParticleRes> particleRes = new ResBase<ParticleRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ParticleRes { mFormat = CompiledFileFormat.Xnb } };
+            ResBase<ParticleRes> particleRes = new ResBase<ParticleRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "PARTICLE_" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ParticleRes { mFormat = CompiledFileFormat.Xnb } };
             string particlePath = Path.Combine("particles", Path.GetFileName(path));
             if (File.Exists(path))
             {
