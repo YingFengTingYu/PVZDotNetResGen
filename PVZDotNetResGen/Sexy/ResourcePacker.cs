@@ -11,7 +11,7 @@ using System.Xml;
 
 namespace PVZDotNetResGen.Sexy
 {
-    public class ResourcePacker(string contentFolderPath, string codeFolderPath, string unpackFolderPath, string buildCacheFolderPath)
+    public class ResourcePacker(string contentFolderPath, string codeFolderPath, string unpackFolderPath, string buildCacheFolderPath, BuildPlatform platform = BuildPlatform.Invalid)
     {
         private readonly string mContentFolderPath = contentFolderPath;
         private readonly string mCodeFolderPath = codeFolderPath;
@@ -20,6 +20,7 @@ namespace PVZDotNetResGen.Sexy
         private Dictionary<string, XmlNode> mXmlNodeList = [];
         private HashSet<string> mExistedImageId = [];
         private Dictionary<string, Dictionary<string, List<SubImageInCode>>> mSubImages = [];
+        private readonly BuildPlatform mPlatform = platform;
 
         private class SubImageInCode
         {
@@ -96,6 +97,7 @@ namespace PVZDotNetResGen.Sexy
                 {
                     if (resBase is ResBase<ImageRes> imageResBase)
                     {
+                        imageResBase.MergePlatform(mPlatform);
                         if (mExistedImageId.Contains(imageResBase.mId))
                         {
                             ParseImageResource(null, imageResBase, metaFile);
@@ -110,6 +112,7 @@ namespace PVZDotNetResGen.Sexy
                     }
                     else if (resBase is ResBase<AtlasRes> atlasResBase)
                     {
+                        atlasResBase.MergePlatform(mPlatform);
                         if (mExistedImageId.Contains(atlasResBase.mId))
                         {
                             ParseAtlasResource(null, atlasResBase, metaFile, packInfo);
@@ -124,33 +127,49 @@ namespace PVZDotNetResGen.Sexy
                     }
                     else if (resBase is ResBase<ReanimRes> reanimResBase)
                     {
+                        reanimResBase.MergePlatform(mPlatform);
                         XmlElement resNode = xmlDocResources.CreateElement("Reanim");
                         ParseReanimResource(resNode, reanimResBase, metaFile);
                         mXmlNodeList[reanimResBase.mGroup].AppendChild(resNode);
                     }
                     else if (resBase is ResBase<ParticleRes> particleResBase)
                     {
+                        particleResBase.MergePlatform(mPlatform);
                         XmlElement resNode = xmlDocResources.CreateElement("Particle");
                         ParseParticleResource(resNode, particleResBase, metaFile);
                         mXmlNodeList[particleResBase.mGroup].AppendChild(resNode);
                     }
                     else if (resBase is ResBase<TrailRes> trailResBase)
                     {
+                        trailResBase.MergePlatform(mPlatform);
                         XmlElement resNode = xmlDocResources.CreateElement("Trail");
                         ParseTrailResource(resNode, trailResBase, metaFile);
                         mXmlNodeList[trailResBase.mGroup].AppendChild(resNode);
                     }
                     else if (resBase is ResBase<SoundRes> soundResBase)
                     {
+                        soundResBase.MergePlatform(mPlatform);
                         XmlElement resNode = xmlDocResources.CreateElement("Sound");
                         ParseSoundResource(resNode, soundResBase, metaFile);
                         mXmlNodeList[soundResBase.mGroup].AppendChild(resNode);
                     }
                     else if (resBase is ResBase<FontRes> fontResBase)
                     {
+                        fontResBase.MergePlatform(mPlatform);
                         XmlElement resNode = xmlDocResources.CreateElement("Font");
                         ParseFontResource(resNode, fontResBase, metaFile);
                         mXmlNodeList[fontResBase.mGroup].AppendChild(resNode);
+                        var sameIds = fontResBase.mSameIds;
+                        if (sameIds != null && sameIds.Count > 0)
+                        {
+                            foreach (var sameIdRes in sameIds)
+                            {
+                                sameIdRes.MergePlatform(mPlatform);
+                                XmlElement resNode2 = xmlDocResources.CreateElement("Font");
+                                ParseFontResource(resNode2, sameIdRes, metaFile);
+                                mXmlNodeList[sameIdRes.mGroup].AppendChild(resNode2);
+                            }
+                        }
                     }
                 }
                 yield return false;
@@ -529,12 +548,12 @@ namespace PVZDotNetResGen.Sexy
                                 mY = buildInfoSubImage.mY + 1,
                                 mWidth = buildInfoSubImage.mWidth,
                                 mHeight = buildInfoSubImage.mHeight,
-                                mRows = subImageRes.mUniversalProp.mRows,
-                                mCols = subImageRes.mUniversalProp.mCols,
-                                mAnim = subImageRes.mUniversalProp.mAnim,
-                                mBeginDelay = subImageRes.mUniversalProp.mBeginDelay,
-                                mEndDelay = subImageRes.mUniversalProp.mEndDelay,
-                                mFrameDelay = subImageRes.mUniversalProp.mFrameDelay,
+                                mRows = subImageRes.mUniversalProp.mRows ?? 1,
+                                mCols = subImageRes.mUniversalProp.mCols ?? 1,
+                                mAnim = subImageRes.mUniversalProp.mAnim ?? AnimType.None,
+                                mBeginDelay = subImageRes.mUniversalProp.mBeginDelay ?? 0,
+                                mEndDelay = subImageRes.mUniversalProp.mEndDelay ?? 0,
+                                mFrameDelay = subImageRes.mUniversalProp.mFrameDelay ?? 0,
                             });
                         }
                     }
