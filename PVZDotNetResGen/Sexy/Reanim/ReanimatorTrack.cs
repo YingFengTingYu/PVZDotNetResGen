@@ -4,6 +4,5 @@
     {
         public string? mName;
         public ReanimatorTransform[]? mTransforms;
-        public int mTransformCount;
     }
 }

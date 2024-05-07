@@ -11,7 +11,6 @@
 
         public ReanimScaleType mDoScale;
         public ReanimatorTrack[]? mTracks;
-        public int mTrackCount;
         public float mFPS;
     }
 }

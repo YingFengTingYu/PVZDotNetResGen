@@ -132,12 +132,6 @@ namespace PVZDotNetResGen.Sexy
                                         case "Font":
                                             ParseFontResource(resNode, groupId);
                                             break;
-                                        case "Music":
-                                            ParseMusicResource(resNode, groupId);
-                                            break;
-                                        case "Level":
-                                            ParseLevelResource(resNode, groupId);
-                                            break;
                                     }
                                 }
                             }
@@ -465,42 +459,6 @@ namespace PVZDotNetResGen.Sexy
             return false;
         }
 
-        private bool ParseMusicResource(XmlNode theElement, string groupId)
-        {
-            if (ParseCommonResource(theElement, out ResBase<MusicRes>? musicRes, groupId, out string? path))
-            {
-                if (path != null)
-                {
-                    File.Copy(GetContentPath(path), GetUnpackPath(path), true);
-                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(path), musicRes);
-                }
-                else
-                {
-                    mProgramRes.Add(musicRes);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        private bool ParseLevelResource(XmlNode theElement, string groupId)
-        {
-            if (ParseCommonResource(theElement, out ResBase<LevelRes>? levelRes, groupId, out string? path))
-            {
-                if (path != null)
-                {
-                    File.Copy(GetContentPath(path), GetUnpackPath(path), true);
-                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(path), levelRes);
-                }
-                else
-                {
-                    mProgramRes.Add(levelRes);
-                }
-                return true;
-            }
-            return false;
-        }
-
         private bool ParseCommonResource<T>(XmlNode theElement, [MaybeNullWhen(false)] out ResBase<T> theRes, string groupId, out string? path) where T : PlatformProperties, new()
         {
             XmlAttributeCollection? attributes = theElement.Attributes;
@@ -800,7 +758,7 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadReanim(string groupName, string path)
         {
-            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "REANIM" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes { mFormat = CompiledFileFormat.Xnb } };
+            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "REANIM" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes() };
             string reanimPath = Path.Combine("reanim", Path.GetFileName(path));
             if (File.Exists(path))
             {
@@ -818,7 +776,7 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadParticleAndTrail(string groupName, string path)
         {
-            ResBase<ParticleRes> particleRes = new ResBase<ParticleRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "PARTICLE_" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ParticleRes { mFormat = CompiledFileFormat.Xnb } };
+            ResBase<ParticleRes> particleRes = new ResBase<ParticleRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "PARTICLE_" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ParticleRes() };
             string particlePath = Path.Combine("particles", Path.GetFileName(path));
             if (File.Exists(path))
             {
