@@ -904,7 +904,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 using (FileStream xnbStream = File.OpenRead(path))
                 {
-                    return XnbTexture2D.Shared.ReadOne(Path.GetFileName(path), xnbStream);
+                    return XnbTexture2DCoder.Shared.ReadOne(Path.GetFileName(path), xnbStream);
                 }
             }
             return new StbBitmap(path);
@@ -916,7 +916,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 using (FileStream outStream = File.Create(path))
                 {
-                    XnbTexture2D textureWriter = new XnbTexture2D();
+                    XnbTexture2DCoder textureWriter = new XnbTexture2DCoder();
                     textureWriter.mSurfaceFormat = surface;
                     textureWriter.WriteOne(bitmap, Path.GetFileName(path), outStream);
                 }

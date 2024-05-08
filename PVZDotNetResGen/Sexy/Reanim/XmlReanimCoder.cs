@@ -6,6 +6,8 @@ namespace PVZDotNetResGen.Sexy.Reanim
 {
     public class XmlReanimCoder : IReanimCoder
     {
+        public static XmlReanimCoder Shared { get; } = new XmlReanimCoder();
+
         public ReanimatorDefinition Decode(Stream stream)
         {
             throw new NotImplementedException();
@@ -16,13 +18,13 @@ namespace PVZDotNetResGen.Sexy.Reanim
             XmlWriterSettings settings = new XmlWriterSettings
             {
                 Indent = true,
-                NewLineOnAttributes = true
+                NewLineOnAttributes = true,
+                ConformanceLevel = ConformanceLevel.Fragment,
             };
             using (XmlWriter writer = XmlWriter.Create(stream, settings))
             {
-                writer.WriteStartDocument();
-                writer.WriteElementString("doScale", content.mDoScale.ToString());
-                writer.WriteElementString("fps", content.mFPS.ToString());
+                writer.WriteElementString("doScale", ((byte)content.mDoScale).ToString());
+                writer.WriteElementString("fps", content.mFPS.ToString("0.###"));
                 ReanimatorTrack[]? tracks = content.mTracks;
                 if (tracks != null && tracks.Length != 0)
                 {
@@ -31,24 +33,11 @@ namespace PVZDotNetResGen.Sexy.Reanim
                         WriteReanimTrack(tracks[i], writer);
                     }
                 }
-                writer.WriteEndDocument();
             }
         }
 
         private void WriteReanimTrack(ReanimatorTrack track, XmlWriter writer)
         {
-            ReanimatorTransform previous = new ReanimatorTransform();
-            previous.mTransX = 0.0f;
-            previous.mTransY = 0.0f;
-            previous.mSkewX = 0.0f;
-            previous.mSkewY = 0.0f;
-            previous.mScaleX = 1.0f;
-            previous.mScaleY = 1.0f;
-            previous.mFrame = 0.0f;
-            previous.mAlpha = 1.0f;
-            previous.mImage = null;
-            previous.mFont = null;
-            previous.mText = null;
             writer.WriteStartElement("track");
             writer.WriteElementString("name", track.mName);
             ReanimatorTransform[]? transforms = track.mTransforms;
@@ -56,69 +45,58 @@ namespace PVZDotNetResGen.Sexy.Reanim
             {
                 for (int i = 0; i < transforms.Length; i++)
                 {
-                    WriteReanimTransform(transforms[i], writer, previous);
+                    WriteReanimTransform(transforms[i], writer);
                 }
             }
             writer.WriteEndElement();
         }
 
-        private void WriteReanimTransform(ReanimatorTransform transform, XmlWriter writer, ReanimatorTransform previous)
+        private void WriteReanimTransform(ReanimatorTransform transform, XmlWriter writer)
         {
             writer.WriteStartElement("t");
-            if (transform.mTransX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mTransX != previous.mTransX)
+            if (transform.mTransX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("x", transform.mTransX.ToString());
-                previous.mTransX = transform.mTransX;
+                writer.WriteElementString("x", transform.mTransX.ToString("0.###"));
             }
-            if (transform.mTransY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mTransY != previous.mTransY)
+            if (transform.mTransY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("y", transform.mTransY.ToString());
-                previous.mTransY = transform.mTransY;
+                writer.WriteElementString("y", transform.mTransY.ToString("0.###"));
             }
-            if (transform.mSkewX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mSkewX != previous.mSkewX)
+            if (transform.mSkewX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("kx", transform.mSkewX.ToString());
-                previous.mSkewX = transform.mSkewX;
+                writer.WriteElementString("kx", transform.mSkewX.ToString("0.###"));
             }
-            if (transform.mSkewY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mSkewY != previous.mSkewY)
+            if (transform.mSkewY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("ky", transform.mSkewY.ToString());
-                previous.mSkewY = transform.mSkewY;
+                writer.WriteElementString("ky", transform.mSkewY.ToString("0.###"));
             }
-            if (transform.mScaleX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mScaleX != previous.mScaleX)
+            if (transform.mScaleX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("sx", transform.mScaleX.ToString());
-                previous.mScaleX = transform.mScaleX;
+                writer.WriteElementString("sx", transform.mScaleX.ToString("0.###"));
             }
-            if (transform.mScaleY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mScaleY != previous.mScaleY)
+            if (transform.mScaleY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("sy", transform.mScaleY.ToString());
-                previous.mScaleY = transform.mScaleY;
+                writer.WriteElementString("sy", transform.mScaleY.ToString("0.###"));
             }
-            if (transform.mFrame != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mFrame != previous.mFrame)
+            if (transform.mFrame != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("f", transform.mFrame.ToString());
-                previous.mFrame = transform.mFrame;
+                writer.WriteElementString("f", transform.mFrame.ToString("0.###"));
             }
-            if (transform.mAlpha != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER && transform.mAlpha != previous.mAlpha)
+            if (transform.mAlpha != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
             {
-                writer.WriteElementString("a", transform.mAlpha.ToString());
-                previous.mAlpha = transform.mAlpha;
+                writer.WriteElementString("a", transform.mAlpha.ToString("0.###"));
             }
-            if (transform.mImage != null && transform.mImage != previous.mImage)
+            if (transform.mImage != null)
             {
                 writer.WriteElementString("i", transform.mImage);
-                previous.mImage = transform.mImage;
             }
-            if (transform.mFont != null && transform.mFont != previous.mFont)
+            if (transform.mFont != null)
             {
                 writer.WriteElementString("font", transform.mFont);
-                previous.mFont = transform.mFont;
             }
-            if (transform.mText != null && transform.mText != previous.mText)
+            if (transform.mText != null)
             {
                 writer.WriteElementString("text", transform.mText);
-                previous.mText = transform.mText;
             }
             writer.WriteEndElement();
         }

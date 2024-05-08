@@ -13,10 +13,5 @@
         public string? mImage;
         public string? mFont;
         public string? mText;
-
-        public static readonly ReanimatorTransform Default = new ReanimatorTransform
-        {
-            mTransX = 0,
-        };
     }
 }

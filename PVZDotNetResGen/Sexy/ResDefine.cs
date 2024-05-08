@@ -407,6 +407,7 @@ namespace PVZDotNetResGen.Sexy
         Gif,
         Psd,
         Xnb,
+        Reanim,
     }
 
     [JsonConverter(typeof(JsonStringEnumConverter<AnimType>))]

@@ -54,7 +54,7 @@ namespace PVZDotNetResGen.Tests
         {
             using (FileStream inStream = File.OpenRead(inPath))
             {
-                XnbTexture2D textureReader = new XnbTexture2D();
+                XnbTexture2DCoder textureReader = new XnbTexture2DCoder();
                 using IDisposableBitmap bitmap = textureReader.ReadOne(Path.GetFileName(inPath), inStream);
                 bitmap.SaveAsPng(outPath);
             }
@@ -67,7 +67,7 @@ namespace PVZDotNetResGen.Tests
             {
                 using (FileStream outStream = File.Create(outPath))
                 {
-                    XnbTexture2D textureWriter = new XnbTexture2D();
+                    XnbTexture2DCoder textureWriter = new XnbTexture2DCoder();
                     textureWriter.mSurfaceFormat = SurfaceFormat.Rgba8Etc2;
                     textureWriter.WriteOne(bitmap, Path.GetFileName(outPath), outStream);
                 }

@@ -16,7 +16,9 @@ namespace PVZDotNetResGen.Sexy.Reanim
             Placeholder
         }
 
-        protected override string ReaderTypeString => "Sexy.TodLib.ReanimReader";
+        public static XnbReanimCoder Shared { get; } = new XnbReanimCoder();
+
+        protected override string ReaderTypeString => "Sexy.TodLib.ReanimReader, LAWN";
 
         private ReanimatorTransform? mPrevious;
 
@@ -100,9 +102,13 @@ namespace PVZDotNetResGen.Sexy.Reanim
             return transform;
         }
 
-        private static string FastReadString(Stream stream)
+        private static string? FastReadString(Stream stream)
         {
             int readLen = stream.ReadInt32LE();
+            if (readLen <= 0)
+            {
+                return null;
+            }
             return stream.ReadString(readLen * 2, encoding: Encoding.Unicode);
         }
 

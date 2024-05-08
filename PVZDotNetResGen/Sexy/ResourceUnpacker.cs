@@ -11,6 +11,7 @@ using PathAndAtlasInfo = (string Path, string DestPath, System.Collections.Gener
 using System.Diagnostics;
 using PVZDotNetResGen.Utils.JsonHelper;
 using PVZDotNetResGen.Sexy.Image;
+using PVZDotNetResGen.Sexy.Reanim;
 
 namespace PVZDotNetResGen.Sexy
 {
@@ -659,7 +660,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 using (FileStream xnbStream = File.OpenRead(path))
                 {
-                    return XnbTexture2D.Shared.ReadOne(Path.GetFileName(path), xnbStream);
+                    return XnbTexture2DCoder.Shared.ReadOne(Path.GetFileName(path), xnbStream);
                 }
             }
             return new StbBitmap(path);
@@ -758,14 +759,14 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadReanim(string groupName, string path)
         {
-            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "REANIM" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes() };
-            string reanimPath = Path.Combine("reanim", Path.GetFileName(path));
+            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Reanim, mGroup = groupName, mId = "REANIM" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes() };
+            string reanimPath = Path.Combine("reanim", Path.GetFileNameWithoutExtension(path) + ".reanim");
             if (File.Exists(path))
             {
                 string reanimUnpackPath = GetUnpackPath(reanimPath);
                 EnsureParentFolderExist(reanimUnpackPath);
-                File.Copy(path, reanimUnpackPath, true);
-                reanimRes.mDiskFormat = DiskFormat.Xnb;
+                ReanimatorDefinition reanim = XnbReanimCoder.Shared.Decode(path);
+                XmlReanimCoder.Shared.Encode(reanim, reanimUnpackPath);
                 AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(reanimPath), reanimRes);
             }
             else
@@ -783,7 +784,6 @@ namespace PVZDotNetResGen.Sexy
                 string particleUnpackPath = GetUnpackPath(particlePath);
                 EnsureParentFolderExist(particleUnpackPath);
                 File.Copy(path, particleUnpackPath, true);
-                particleRes.mDiskFormat = DiskFormat.Xnb;
                 AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(particlePath), particleRes);
             }
             else

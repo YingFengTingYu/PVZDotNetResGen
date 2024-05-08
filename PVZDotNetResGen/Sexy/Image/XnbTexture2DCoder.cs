@@ -9,12 +9,12 @@ using System.IO;
 
 namespace PVZDotNetResGen.Sexy.Image
 {
-    public class XnbTexture2D : XnbBase<IDisposableBitmap>
+    public class XnbTexture2DCoder : XnbBase<IDisposableBitmap>
     {
         public SurfaceFormat mSurfaceFormat;
         public PVRTexLibCompressorQuality mQuality;
 
-        public static XnbTexture2D Shared { get; } = new XnbTexture2D();
+        public static XnbTexture2DCoder Shared { get; } = new XnbTexture2DCoder();
 
         protected override string ReaderTypeString => "Microsoft.Xna.Framework.Content.Texture2DReader";
 
