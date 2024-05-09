@@ -1,4 +1,5 @@
 ﻿using PVZDotNetResGen.Sexy.Image;
+using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
 using PVZDotNetResGen.Utils.JsonHelper;
@@ -109,6 +110,25 @@ namespace PVZDotNetResGen.Sexy
                             mXmlNodeList[imageResBase.mGroup].AppendChild(resNode);
                             mExistedImageId.Add(imageResBase.mId);
                         }
+                        var sameIds = imageResBase.mSameIds;
+                        if (sameIds != null && sameIds.Count > 0)
+                        {
+                            foreach (var sameIdRes in sameIds)
+                            {
+                                sameIdRes.MergePlatform(mPlatform);
+                                if (mExistedImageId.Contains(sameIdRes.mId))
+                                {
+                                    ParseImageResource(null, sameIdRes, metaFile);
+                                }
+                                else
+                                {
+                                    XmlElement resNode = xmlDocResources.CreateElement("Image");
+                                    ParseImageResource(resNode, sameIdRes, metaFile);
+                                    mXmlNodeList[sameIdRes.mGroup].AppendChild(resNode);
+                                    mExistedImageId.Add(sameIdRes.mId);
+                                }
+                            }
+                        }
                     }
                     else if (resBase is ResBase<AtlasRes> atlasResBase)
                     {
@@ -123,6 +143,25 @@ namespace PVZDotNetResGen.Sexy
                             ParseAtlasResource(resNode, atlasResBase, metaFile, packInfo);
                             mXmlNodeList[atlasResBase.mGroup].AppendChild(resNode);
                             mExistedImageId.Add(atlasResBase.mId);
+                        }
+                        var sameIds = atlasResBase.mSameIds;
+                        if (sameIds != null && sameIds.Count > 0)
+                        {
+                            foreach (var sameIdRes in sameIds)
+                            {
+                                sameIdRes.MergePlatform(mPlatform);
+                                if (mExistedImageId.Contains(sameIdRes.mId))
+                                {
+                                    ParseAtlasResource(null, sameIdRes, metaFile, packInfo);
+                                }
+                                else
+                                {
+                                    XmlElement resNode = xmlDocResources.CreateElement("Image");
+                                    ParseAtlasResource(resNode, sameIdRes, metaFile, packInfo);
+                                    mXmlNodeList[sameIdRes.mGroup].AppendChild(resNode);
+                                    mExistedImageId.Add(sameIdRes.mId);
+                                }
+                            }
                         }
                     }
                     else if (resBase is ResBase<ReanimRes> reanimResBase)
@@ -152,6 +191,17 @@ namespace PVZDotNetResGen.Sexy
                         XmlElement resNode = xmlDocResources.CreateElement("Sound");
                         ParseSoundResource(resNode, soundResBase, metaFile);
                         mXmlNodeList[soundResBase.mGroup].AppendChild(resNode);
+                        var sameIds = soundResBase.mSameIds;
+                        if (sameIds != null && sameIds.Count > 0)
+                        {
+                            foreach (var sameIdRes in sameIds)
+                            {
+                                sameIdRes.MergePlatform(mPlatform);
+                                XmlElement resNode2 = xmlDocResources.CreateElement("Sound");
+                                ParseSoundResource(resNode2, sameIdRes, metaFile);
+                                mXmlNodeList[sameIdRes.mGroup].AppendChild(resNode2);
+                            }
+                        }
                     }
                     else if (resBase is ResBase<FontRes> fontResBase)
                     {
@@ -617,11 +667,11 @@ namespace PVZDotNetResGen.Sexy
         private bool ParseReanimResource(XmlElement theElement, ResBase<ReanimRes> reanimRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
-            if (ParseCommonResource(theElement, reanimRes, RemoveXnbExtension(path)))
+            if (ParseCommonResource(theElement, reanimRes, path))
             {
                 string tempMetaPath = GetTempMetaPath(path);
-                string tempPath = GetTempPath(path);
-                string unpackPath = GetUnpackPath(path);
+                string tempPath = GetTempPath(path) + ".xnb";
+                string unpackPath = LoadImageExtension(GetUnpackPath(path), reanimRes.mDiskFormat);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
                 if (buildInfo == null || !File.Exists(unpackPath))
@@ -643,7 +693,8 @@ namespace PVZDotNetResGen.Sexy
                 {
                     EnsureParentFolderExist(tempPath);
                     buildInfo = new BuildInfo();
-                    File.Copy(unpackPath, tempPath, true);
+                    ReanimatorDefinition reanim = XmlReanimCoder.Shared.Decode(unpackPath);
+                    XnbReanimCoder.Shared.Encode(reanim, tempPath);
                     buildInfo.mDiskFormat = reanimRes.mDiskFormat;
                     buildInfo.mHash = GetHash(unpackPath);
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);

@@ -180,6 +180,11 @@ namespace PVZDotNetResGen.Sexy
                 atlasRes.mUniversalProp.mWidth = 2048;
                 atlasRes.mUniversalProp.mHeight = 2048;
                 atlasRes.mUniversalProp.mExtrude = 1;
+                atlasRes.mUniversalProp.mSurface = SurfaceFormat.Color;
+                (atlasRes.mPCDXProp ??= new AtlasRes()).mSurface = SurfaceFormat.Dxt5;
+                (atlasRes.mPCGLProp ??= new AtlasRes()).mSurface = SurfaceFormat.Dxt5;
+                (atlasRes.mAndroidProp ??= new AtlasRes()).mSurface = SurfaceFormat.Rgba8Etc2;
+                (atlasRes.mIOSProp ??= new AtlasRes()).mSurface = SurfaceFormat.Rgba8Etc2;
                 if (attributes != null)
                 {
                     atlasRes.mUniversalProp.mNoPal = attributes["nopal"] != null;
@@ -244,6 +249,11 @@ namespace PVZDotNetResGen.Sexy
             if (ParseCommonResource(theElement, out ResBase<ImageRes>? imageRes, groupId, out string? path))
             {
                 XmlAttributeCollection? attributes = theElement.Attributes;
+                imageRes.mUniversalProp.mSurface = SurfaceFormat.Color;
+                (imageRes.mPCDXProp ??= new ImageRes()).mSurface = SurfaceFormat.Dxt5;
+                (imageRes.mPCGLProp ??= new ImageRes()).mSurface = SurfaceFormat.Dxt5;
+                (imageRes.mAndroidProp ??= new ImageRes()).mSurface = SurfaceFormat.Rgba8Etc2;
+                (imageRes.mIOSProp ??= new ImageRes()).mSurface = SurfaceFormat.Rgba8Etc2;
                 if (attributes != null)
                 {
                     imageRes.mUniversalProp.mNoPal = attributes["nopal"] != null;
@@ -759,11 +769,11 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadReanim(string groupName, string path)
         {
-            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Reanim, mGroup = groupName, mId = "REANIM" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes() };
-            string reanimPath = Path.Combine("reanim", Path.GetFileNameWithoutExtension(path) + ".reanim");
+            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Reanim, mGroup = groupName, mId = "REANIM_" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes() };
+            string reanimPath = Path.Combine("reanim", Path.GetFileNameWithoutExtension(path));
             if (File.Exists(path))
             {
-                string reanimUnpackPath = GetUnpackPath(reanimPath);
+                string reanimUnpackPath = GetUnpackPath(reanimPath + ".reanim");
                 EnsureParentFolderExist(reanimUnpackPath);
                 ReanimatorDefinition reanim = XnbReanimCoder.Shared.Decode(path);
                 XmlReanimCoder.Shared.Encode(reanim, reanimUnpackPath);
