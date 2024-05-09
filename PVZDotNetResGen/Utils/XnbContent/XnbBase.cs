@@ -185,7 +185,7 @@ namespace PVZDotNetResGen.Utils.XnbContent
             stream.WriteUInt8((byte)'X');
             stream.WriteUInt8((byte)'N');
             stream.WriteUInt8((byte)'B');
-            stream.WriteUInt8((byte)'w'); // platform
+            stream.WriteUInt8((byte)'m'); // platform
 
             stream.WriteUInt8(5); // version
             stream.WriteUInt8(0); // flags
@@ -228,7 +228,7 @@ namespace PVZDotNetResGen.Utils.XnbContent
             stream.WriteUInt8((byte)'X');
             stream.WriteUInt8((byte)'N');
             stream.WriteUInt8((byte)'B');
-            stream.WriteUInt8((byte)'w'); // platform
+            stream.WriteUInt8((byte)'m'); // platform
 
             stream.WriteUInt8(5); // version
             stream.WriteUInt8(0); // flags
