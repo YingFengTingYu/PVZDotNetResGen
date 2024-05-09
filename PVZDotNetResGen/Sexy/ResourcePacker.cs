@@ -556,8 +556,8 @@ namespace PVZDotNetResGen.Sexy
                             Debug.Assert(rect.id != null);
                             BuildAtlasInfo.SubImageBuildInfo buildImageInfo = new BuildAtlasInfo.SubImageBuildInfo();
                             buildImageInfo.mId = Path.GetFileNameWithoutExtension(rect.id).ToUpper();
-                            buildImageInfo.mX = rect.x;
-                            buildImageInfo.mY = rect.y;
+                            buildImageInfo.mX = rect.x + extrude;
+                            buildImageInfo.mY = rect.y + extrude;
                             using (StbBitmap pngBitmap = new StbBitmap(rect.id))
                             {
                                 pngBitmap.AsRefBitmap().CopyTo(atlasBitmapRef, 0, 0, rect.x + extrude, rect.y + extrude, pngBitmap.Width, pngBitmap.Height, extrude);
