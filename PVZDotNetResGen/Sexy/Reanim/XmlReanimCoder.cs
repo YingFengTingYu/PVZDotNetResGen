@@ -243,7 +243,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
             };
             using (XmlWriter writer = XmlWriter.Create(stream, settings))
             {
-                writer.WriteElementString("doScale", ((byte)content.mDoScale).ToString());
+                writer.WriteElementString("doScale", ((sbyte)content.mDoScale).ToString());
                 writer.WriteElementString("fps", content.mFPS.ToString("0.###", mCulture));
                 List<ReanimatorTrack> tracks = content.mTracks;
                 for (int i = 0; i < tracks.Count; i++)

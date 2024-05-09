@@ -667,10 +667,10 @@ namespace PVZDotNetResGen.Sexy
         private bool ParseReanimResource(XmlElement theElement, ResBase<ReanimRes> reanimRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
+            string tempPath = GetTempPath(path) + ".xnb";
             if (ParseCommonResource(theElement, reanimRes, path))
             {
                 string tempMetaPath = GetTempMetaPath(path);
-                string tempPath = GetTempPath(path) + ".xnb";
                 string unpackPath = LoadImageExtension(GetUnpackPath(path), reanimRes.mDiskFormat);
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
@@ -702,7 +702,7 @@ namespace PVZDotNetResGen.Sexy
             }
             string contentPath = GetContentPath(path);
             EnsureParentFolderExist(contentPath);
-            File.Copy(GetTempPath(path), contentPath, true);
+            File.Copy(tempPath, contentPath, true);
             return true;
         }
 
