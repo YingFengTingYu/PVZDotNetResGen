@@ -1,6 +1,7 @@
 ﻿using PVZDotNetResGen.Utils.StreamHelper;
 using PVZDotNetResGen.Utils.XnbContent;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -22,32 +23,32 @@ namespace PVZDotNetResGen.Sexy.Reanim
 
         private ReanimatorTransform? mPrevious;
 
+        public bool mAggressiveUsePlaceHolder = false;
+
         public override ReanimatorDefinition ReadContent(Stream stream, string originalAssetName, byte version)
         {
-            mPrevious = null;
             ReanimatorDefinition reanimatorDefinition = new ReanimatorDefinition();
             reanimatorDefinition.mDoScale = (ReanimScaleType)stream.ReadUInt8();
             reanimatorDefinition.mFPS = stream.ReadFloat32LE();
             int trackCount = stream.ReadInt32LE();
-            reanimatorDefinition.mTracks = new ReanimatorTrack[trackCount];
             for (int i = 0; i < trackCount; i++)
             {
-                reanimatorDefinition.mTracks[i] = ReadReanimTrack(stream);
+                reanimatorDefinition.mTracks.Add(ReadReanimTrack(stream));
             }
-            mPrevious = null;
             return reanimatorDefinition;
         }
 
         private ReanimatorTrack ReadReanimTrack(Stream input)
         {
+            mPrevious = null;
             ReanimatorTrack track = new ReanimatorTrack();
             track.mName = FastReadString(input);
             int transformCount = input.ReadInt32LE();
-            track.mTransforms = new ReanimatorTransform[transformCount];
             for (int i = 0; i < transformCount; i++)
             {
-                track.mTransforms[i] = ReadReanimTransform(input);
+                track.mTransforms.Add(ReadReanimTransform(input));
             }
+            mPrevious = null;
             return track;
         }
 
@@ -55,21 +56,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
         {
             ReanimatorTransform transform = new ReanimatorTransform();
             ReanimOptimisationType reanimOptimisationType = (ReanimOptimisationType)input.ReadUInt8();
-            if (reanimOptimisationType == ReanimOptimisationType.Placeholder)
-            {
-                transform.mTransX = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mTransY = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mScaleX = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mScaleY = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mSkewX = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mSkewY = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mFrame = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mAlpha = ReanimHelper.DEFAULT_FIELD_PLACEHOLDER;
-                transform.mFont = null;
-                transform.mImage = null;
-                transform.mText = null;
-            }
-            else if (reanimOptimisationType == ReanimOptimisationType.CopyPrevious)
+            if (reanimOptimisationType == ReanimOptimisationType.CopyPrevious)
             {
                 Debug.Assert(mPrevious != null);
                 transform.mTransX = mPrevious.mTransX;
@@ -84,7 +71,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                 transform.mImage = mPrevious.mImage;
                 transform.mText = mPrevious.mText;
             }
-            else
+            else if (reanimOptimisationType != ReanimOptimisationType.Placeholder)
             {
                 transform.mFont = FastReadString(input);
                 transform.mImage = FastReadString(input);
@@ -114,70 +101,57 @@ namespace PVZDotNetResGen.Sexy.Reanim
 
         public override void WriteContent(ReanimatorDefinition content, Stream stream, string originalAssetName, byte version)
         {
-            mPrevious = null;
             stream.WriteUInt8((byte)content.mDoScale);
             stream.WriteFloat32LE(content.mFPS);
-            ReanimatorTrack[]? tracks = content.mTracks;
-            if (tracks == null || tracks.Length == 0)
+            List<ReanimatorTrack> tracks = content.mTracks;
+            stream.WriteInt32LE(tracks.Count);
+            for (int i = 0; i < tracks.Count; i++)
             {
-                stream.WriteInt32LE(0);
+                WriteReanimTrack(tracks[i], stream);
             }
-            else
-            {
-                stream.WriteInt32LE(tracks.Length);
-                for (int i = 0; i < tracks.Length; i++)
-                {
-                    WriteReanimTrack(tracks[i], stream);
-                }
-            }
-            mPrevious = null;
         }
 
         private void WriteReanimTrack(ReanimatorTrack track, Stream stream)
         {
+            mPrevious = null;
             FastWriteString(track.mName, stream);
-            ReanimatorTransform[]? transforms = track.mTransforms;
-            if (transforms == null || transforms.Length == 0)
+            List<ReanimatorTransform > transforms = track.mTransforms;
+            stream.WriteInt32LE(transforms.Count);
+            for (int i = 0; i < transforms.Count; i++)
             {
-                stream.WriteInt32LE(0);
+                WriteReanimTransform(transforms[i], stream);
             }
-            else
-            {
-                stream.WriteInt32LE(transforms.Length);
-                for (int i = 0; i < transforms.Length; i++)
-                {
-                    WriteReanimTransform(transforms[i], stream);
-                }
-            }
+            mPrevious = null;
         }
 
         private void WriteReanimTransform(ReanimatorTransform transform, Stream stream)
         {
-            if (transform.mTransX == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mTransY == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mScaleX == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mScaleY == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mSkewX == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mSkewY == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mFrame == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mAlpha == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
-                || transform.mFont == null
-                || transform.mImage == null
-                || transform.mText == null)
+            if (mAggressiveUsePlaceHolder
+                && transform.mTransX == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mTransY == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mScaleX == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mScaleY == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mSkewX == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mSkewY == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mFrame == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mAlpha == ReanimHelper.DEFAULT_FIELD_PLACEHOLDER
+                && transform.mFont == null
+                && transform.mImage == null
+                && transform.mText == null)
             {
                 stream.WriteUInt8((byte)ReanimOptimisationType.Placeholder);
             }
             else if (mPrevious != null && (transform.mTransX == mPrevious.mTransX
-                || transform.mTransY == mPrevious.mTransY
-                || transform.mScaleX == mPrevious.mScaleX
-                || transform.mScaleY == mPrevious.mScaleY
-                || transform.mSkewX == mPrevious.mSkewX
-                || transform.mSkewY == mPrevious.mSkewY
-                || transform.mFrame == mPrevious.mFrame
-                || transform.mAlpha == mPrevious.mAlpha
-                || transform.mFont == mPrevious.mFont
-                || transform.mImage == mPrevious.mImage
-                || transform.mText == mPrevious.mText))
+                && transform.mTransY == mPrevious.mTransY
+                && transform.mScaleX == mPrevious.mScaleX
+                && transform.mScaleY == mPrevious.mScaleY
+                && transform.mSkewX == mPrevious.mSkewX
+                && transform.mSkewY == mPrevious.mSkewY
+                && transform.mFrame == mPrevious.mFrame
+                && transform.mAlpha == mPrevious.mAlpha
+                && transform.mFont == mPrevious.mFont
+                && transform.mImage == mPrevious.mImage
+                && transform.mText == mPrevious.mText))
             {
                 stream.WriteUInt8((byte)ReanimOptimisationType.CopyPrevious);
             }

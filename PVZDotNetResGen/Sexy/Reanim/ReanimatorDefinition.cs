@@ -1,9 +1,11 @@
-﻿namespace PVZDotNetResGen.Sexy.Reanim
+﻿using System.Collections.Generic;
+
+namespace PVZDotNetResGen.Sexy.Reanim
 {
     public class ReanimatorDefinition
     {
-        public ReanimScaleType mDoScale;
-        public ReanimatorTrack[]? mTracks;
+        public ReanimScaleType mDoScale = ReanimScaleType.ScaleFromPC;
+        public List<ReanimatorTrack> mTracks = [];
         public float mFPS = 12.0f;
     }
 }

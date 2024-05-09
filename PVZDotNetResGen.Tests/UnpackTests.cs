@@ -1,10 +1,14 @@
 using PVZDotNetResGen.Sexy;
 using PVZDotNetResGen.Sexy.Atlas;
 using PVZDotNetResGen.Sexy.Image;
+using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
+using PVZDotNetResGen.Utils.JsonHelper;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 namespace PVZDotNetResGen.Tests
 {
@@ -72,6 +76,26 @@ namespace PVZDotNetResGen.Tests
                     textureWriter.WriteOne(bitmap, Path.GetFileName(outPath), outStream);
                 }
             }
+        }
+
+        [TestCase("D:\\Blover.xnb", "D:\\Blover.reanim")]
+        public void DecodeXnbReanim(string inPath, string outPath)
+        {
+            ReanimatorDefinition reanim = XnbReanimCoder.Shared.Decode(inPath);
+            XmlReanimCoder.Shared.Encode(reanim, outPath);
+        }
+
+        [TestCase("D:\\Blover.reanim", "D:\\Blover2.xnb")]
+        public void EncodeXnbReanim(string inPath, string outPath)
+        {
+            ReanimatorDefinition reanim = XmlReanimCoder.Shared.Decode(inPath);
+            Console.WriteLine(JsonSerializer.Serialize(reanim, new JsonSerializerOptions
+            {
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = true,
+                IncludeFields = true,
+            }));
+            XnbReanimCoder.Shared.Encode(reanim, outPath);
         }
     }
 }

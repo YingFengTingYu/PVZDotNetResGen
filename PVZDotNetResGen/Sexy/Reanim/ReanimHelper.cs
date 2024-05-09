@@ -5,10 +5,10 @@
         public const float DEFAULT_FIELD_PLACEHOLDER = -99999f;
     }
 
-    public enum ReanimScaleType
+    public enum ReanimScaleType : sbyte
     {
         NoScale,
         InvertAndScale,
-        ScaleFromPC = 0xFF
+        ScaleFromPC = -1,
     }
 }

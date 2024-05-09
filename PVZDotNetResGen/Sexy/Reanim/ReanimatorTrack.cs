@@ -1,8 +1,10 @@
-﻿namespace PVZDotNetResGen.Sexy.Reanim
+﻿using System.Collections.Generic;
+
+namespace PVZDotNetResGen.Sexy.Reanim
 {
     public class ReanimatorTrack
     {
-        public string? mName;
-        public ReanimatorTransform[]? mTransforms;
+        public string? mName = null;
+        public List<ReanimatorTransform> mTransforms = [];
     }
 }
