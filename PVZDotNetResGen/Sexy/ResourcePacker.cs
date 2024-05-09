@@ -594,8 +594,8 @@ namespace PVZDotNetResGen.Sexy
                             subImages.Add(new SubImageInCode
                             {
                                 mId = buildInfoSubImage.mId ?? string.Empty,
-                                mX = buildInfoSubImage.mX + 1,
-                                mY = buildInfoSubImage.mY + 1,
+                                mX = buildInfoSubImage.mX,
+                                mY = buildInfoSubImage.mY,
                                 mWidth = buildInfoSubImage.mWidth,
                                 mHeight = buildInfoSubImage.mHeight,
                                 mRows = subImageRes.mUniversalProp.mRows ?? 1,

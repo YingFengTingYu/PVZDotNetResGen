@@ -725,7 +725,24 @@ namespace PVZDotNetResGen.Sexy
                             // 保存图片
                             using (MemoryPoolBitmap subBitmap = new MemoryPoolBitmap(spirits.mWidth, spirits.mHeight))
                             {
-                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX - 1, spirits.mY - 1, 0, 0, spirits.mWidth, spirits.mHeight);
+                                int width = spirits.mWidth;
+                                int height = spirits.mHeight;
+                                bool warning = false;
+                                if ((spirits.mX + width) > bitmapRef.Width)
+                                {
+                                    width = bitmapRef.Width - spirits.mX;
+                                    warning = true;
+                                }
+                                if ((spirits.mY + height) > bitmapRef.Height)
+                                {
+                                    height = bitmapRef.Height - spirits.mY;
+                                    warning = true;
+                                }
+                                if (warning)
+                                {
+                                    Console.WriteLine("This sub image may need repairing: {0}", spirits.mId);
+                                }
+                                bitmapRef.CopyTo(subBitmap.AsRefBitmap(), spirits.mX, spirits.mY, 0, 0, width, height);
                                 subBitmap.SaveAsPng(GetUnpackPath(thisImgExPath));
                             }
                             subImageRes.mDiskFormat = DiskFormat.Png;
