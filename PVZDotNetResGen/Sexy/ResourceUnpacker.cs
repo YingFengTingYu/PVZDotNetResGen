@@ -156,6 +156,18 @@ namespace PVZDotNetResGen.Sexy
             {
                 DoLoadParticleAndTrail("LoadingParticles", particle);
             }
+            // 处理txt
+            string[] txts = Directory.GetFiles(mContentFolderPath, "LawnStrings_*.txt", SearchOption.TopDirectoryOnly);
+            foreach (string txt in txts)
+            {
+                File.Copy(txt, GetUnpackPath(Path.GetFileName(txt)), true);
+            }
+            // 处理music
+            string[] musics = Directory.GetFiles(GetContentPath("music"), "*", SearchOption.AllDirectories);
+            foreach (string music in musics)
+            {
+                File.Copy(music, GetUnpackPath(Path.Combine("music", Path.GetFileName(music))), true);
+            }
             // 处理sys资源和program资源
             Debug.Assert(mProgramRes.Count == 0);
             Debug.Assert(mSysFontRes.Count == 0);
