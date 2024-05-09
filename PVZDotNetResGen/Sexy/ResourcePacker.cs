@@ -1,4 +1,5 @@
-﻿using PVZDotNetResGen.Sexy.Image;
+﻿using PVZDotNetResGen.Sexy.Atlas;
+using PVZDotNetResGen.Sexy.Image;
 using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
@@ -20,23 +21,9 @@ namespace PVZDotNetResGen.Sexy
         private readonly string mBuildCacheFolderPath = buildCacheFolderPath;
         private Dictionary<string, XmlNode> mXmlNodeList = [];
         private HashSet<string> mExistedImageId = [];
-        private Dictionary<string, Dictionary<string, List<SubImageInCode>>> mSubImages = [];
+        private Dictionary<string, Dictionary<string, List<SpriteItem>>> mSubImages = [];
         private readonly BuildPlatform mPlatform = platform;
-
-        private class SubImageInCode
-        {
-            public required string mId;
-            public int mX;
-            public int mY;
-            public int mWidth;
-            public int mHeight;
-            public int mRows;
-            public int mCols;
-            public AnimType mAnim;
-            public int mFrameDelay;
-            public int mBeginDelay;
-            public int mEndDelay;
-        }
+        private bool mBuildInAtlasInfo = false;
 
         public string GetContentPath(string path)
         {
@@ -226,12 +213,35 @@ namespace PVZDotNetResGen.Sexy
             }
             foreach (var pair in mSubImages)
             {
-                CreateAtlasInfoTo(pair.Key);
+                if (mBuildInAtlasInfo)
+                {
+                    CreateCodeAtlasInfoTo(pair.Key);
+                }
+                else
+                {
+                    CreateJsonAtlasInfoTo(pair.Key);
+                }
             }
             xmlDocResources.Save(GetContentPath("resources.xml"));
         }
 
-        private void CreateAtlasInfoTo(string res)
+        private void CreateJsonAtlasInfoTo(string res)
+        {
+            string path = GetContentPath(Path.Combine("atlases", res));
+            var thisSubImages = mSubImages[res];
+            foreach (var pair in thisSubImages)
+            {
+                AtlasInfo atlasInfo = new AtlasInfo
+                {
+                    mSubImages = pair.Value,
+                };
+                string jsonPath = Path.Combine(path, pair.Key + ".atlas.json");
+                EnsureParentFolderExist(jsonPath);
+                AOTJson.TrySerializeToFile(jsonPath, atlasInfo);
+            }
+        }
+
+        private void CreateCodeAtlasInfoTo(string res)
         {
             string path = Path.Combine(mCodeFolderPath, $"AtlasResources_{res}.cs");
             var thisSubImages = mSubImages[res];
@@ -577,7 +587,7 @@ namespace PVZDotNetResGen.Sexy
                 string atlasName = imageRes.mUniversalProp.mAtlasName ?? string.Empty;
                 if (!mSubImages.ContainsKey(atlasName))
                 {
-                    List<SubImageInCode> subImages = [];
+                    List<SpriteItem> subImages = [];
                     var buildInfoSubImages = buildInfo?.mSubImages;
                     if (buildInfoSubImages != null)
                     {
@@ -591,7 +601,7 @@ namespace PVZDotNetResGen.Sexy
                                 subImageRes = new ResBase<SubImageRes> { mGroup = imageRes.mGroup, mId = Path.GetFileNameWithoutExtension(png).ToUpper(), mUniversalProp = new SubImageRes { mParent = imageRes.mId, mCols = 1, mRows = 1, mAnim = AnimType.None, mBeginDelay = 0, mEndDelay = 0, mFrameDelay = 0 } };
                                 AOTJson.TrySerializeToFile<ResBase>(pngMetaPath, subImageRes);
                             }
-                            subImages.Add(new SubImageInCode
+                            subImages.Add(new SpriteItem
                             {
                                 mId = buildInfoSubImage.mId ?? string.Empty,
                                 mX = buildInfoSubImage.mX,
@@ -617,7 +627,7 @@ namespace PVZDotNetResGen.Sexy
                             res = thisRes;
                         }
                     }
-                    if (!mSubImages.TryGetValue(res, out Dictionary<string, List<SubImageInCode>>? value))
+                    if (!mSubImages.TryGetValue(res, out Dictionary<string, List<SpriteItem>>? value))
                     {
                         value = ([]);
                         mSubImages.Add(res, value);

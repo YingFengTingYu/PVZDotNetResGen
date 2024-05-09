@@ -23,6 +23,7 @@ namespace PVZDotNetResGen.Utils.JsonHelper
     [JsonSerializable(typeof(JsonShell<BuildInfo>))]
     [JsonSerializable(typeof(JsonShell<BuildImageInfo>))]
     [JsonSerializable(typeof(JsonShell<BuildAtlasInfo>))]
+    [JsonSerializable(typeof(JsonShell<AtlasInfo>))]
     internal partial class AOTJsonSerializerContext : JsonSerializerContext
     {
     }

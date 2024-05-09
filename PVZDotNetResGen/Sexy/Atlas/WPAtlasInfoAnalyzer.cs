@@ -161,19 +161,4 @@ namespace PVZDotNetResGen.Sexy.Atlas
             public required List<SpriteItem> mAtlas;
         }
     }
-
-    public class SpriteItem
-    {
-        public required string mId;
-        public int mX;
-        public int mY;
-        public int mWidth;
-        public int mHeight;
-        public int mRows;
-        public int mCols;
-        public AnimType mAnim;
-        public int mFrameDelay;
-        public int mBeginDelay;
-        public int mEndDelay;
-    }
 }
