@@ -23,7 +23,7 @@ namespace PVZDotNetResGen.Sexy
         private HashSet<string> mExistedImageId = [];
         private Dictionary<string, Dictionary<string, List<SpriteItem>>> mSubImages = [];
         private readonly BuildPlatform mPlatform = platform;
-        private bool mBuildInAtlasInfo = false;
+        private bool mBuildInAtlasInfo = true;
 
         public string GetContentPath(string path)
         {
