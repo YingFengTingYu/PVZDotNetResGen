@@ -867,7 +867,7 @@ namespace PVZDotNetResGen.Sexy
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
             }
-            string contentPath = GetContentPath(path);
+            string contentPath = GetContentPath(path) + ".xnb";
             EnsureParentFolderExist(contentPath);
             File.Copy(tempPath, contentPath, true);
             return true;
