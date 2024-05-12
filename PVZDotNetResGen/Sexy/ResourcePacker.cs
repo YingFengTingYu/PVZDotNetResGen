@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Xml;
 
@@ -154,23 +155,17 @@ namespace PVZDotNetResGen.Sexy
                     else if (resBase is ResBase<ReanimRes> reanimResBase)
                     {
                         reanimResBase.MergePlatform(mPlatform);
-                        XmlElement resNode = xmlDocResources.CreateElement("Reanim");
-                        ParseReanimResource(resNode, reanimResBase, metaFile);
-                        mXmlNodeList[reanimResBase.mGroup].AppendChild(resNode);
+                        ParseReanimResource(reanimResBase, metaFile);
                     }
                     else if (resBase is ResBase<ParticleRes> particleResBase)
                     {
                         particleResBase.MergePlatform(mPlatform);
-                        XmlElement resNode = xmlDocResources.CreateElement("Particle");
-                        ParseParticleResource(resNode, particleResBase, metaFile);
-                        mXmlNodeList[particleResBase.mGroup].AppendChild(resNode);
+                        ParseParticleResource(particleResBase, metaFile);
                     }
                     else if (resBase is ResBase<TrailRes> trailResBase)
                     {
                         trailResBase.MergePlatform(mPlatform);
-                        XmlElement resNode = xmlDocResources.CreateElement("Trail");
-                        ParseTrailResource(resNode, trailResBase, metaFile);
-                        mXmlNodeList[trailResBase.mGroup].AppendChild(resNode);
+                        ParseTrailResource(trailResBase, metaFile);
                     }
                     else if (resBase is ResBase<SoundRes> soundResBase)
                     {
@@ -211,6 +206,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 yield return false;
             }
+            CreateCodeTo();
             foreach (var pair in mSubImages)
             {
                 if (mBuildInAtlasInfo)
@@ -223,6 +219,167 @@ namespace PVZDotNetResGen.Sexy
                 }
             }
             xmlDocResources.Save(GetContentPath("resources.xml"));
+        }
+
+        private void CreateCodeTo()
+        {
+            string path = Path.Combine(mCodeFolderPath, $"AtlasResources.cs");
+            var thisSubImages = mSubImages.First().Value;
+            EnsureParentFolderExist(path);
+            const int startIndex = 10001;
+            List<string> idList = [];
+            foreach (var pair in thisSubImages)
+            {
+                foreach (var sub in pair.Value)
+                {
+                    idList.Add(sub.mId);
+                }
+            }
+            idList.Sort();
+            using (StreamWriter sw = new StreamWriter(path))
+            {
+                sw.WriteLine("""
+                    using System;
+                    using Sexy;
+
+                    namespace Sexy
+                    {
+                        public/*internal*/ class AtlasResources
+                        {
+                            public void ExtractResources()
+                            {
+                    """);
+                foreach (var pair in thisSubImages)
+                {
+                    sw.Write("            Unpack");
+                    sw.Write(pair.Key);
+                    sw.WriteLine("AtlasImages();");
+                }
+                sw.WriteLine("""
+                            }
+
+                    """);
+                foreach (var pair in thisSubImages)
+                {
+                    sw.Write("        public virtual void Unpack");
+                    sw.Write(pair.Key);
+                    sw.WriteLine("AtlasImages()");
+                    sw.WriteLine("""
+                            {
+                            }
+
+                    """);
+                }
+                sw.WriteLine("""
+                            public static Image GetImageInAtlasById(int theId)
+                            {
+                                switch (theId)
+                                {
+                    """);
+                for (int i = 0; i < idList.Count; i++)
+                {
+                    sw.Write("            case ");
+                    sw.Write(i + startIndex);
+                    sw.WriteLine(":");
+                    sw.Write("                return AtlasResources.");
+                    sw.Write(idList[i]);
+                    sw.WriteLine(";");
+                }
+                sw.WriteLine("""
+                                default:
+                            return Resources.GetImageById(theId);
+                        }
+                    }
+
+                    public static int GetAtlasIdByStringId(string theStringId)
+                    {
+                        for (int i = 0; i < AtlasResources.table.Length; i++)
+                        {
+                            if (theStringId == AtlasResources.table[i].mStringId)
+                            {
+                                return AtlasResources.table[i].mImageId;
+                            }
+                        }
+                        return (int)Resources.GetIdByStringId(theStringId);
+                    }
+
+                    public static int GetIdByImageInAtlas(Image theImage)
+                    {
+                    """);
+                for (int i = 0; i < idList.Count; i++)
+                {
+                    sw.Write("            if (theImage == AtlasResources.");
+                    sw.Write(idList[i]);
+                    sw.WriteLine(")");
+                    sw.WriteLine("            {");
+                    sw.Write("                return ");
+                    sw.Write(i + startIndex);
+                    sw.WriteLine(";");
+                    sw.WriteLine("            }");
+                }
+                sw.WriteLine("""
+                        int idByImage = (int)Resources.GetIdByImage(theImage);
+                        if (idByImage == 249)
+                        {
+                            return -1;
+                        }
+                        return idByImage;
+                    }
+
+                    public static AtlasResources mAtlasResources;
+
+                    """);
+                for (int i = 0; i < idList.Count; i++)
+                {
+                    sw.Write("        public static Image ");
+                    sw.Write(idList[i]);
+                    sw.WriteLine(";");
+                    sw.WriteLine();
+                }
+                sw.WriteLine("""
+                    private static AtlasResources.AtlasStringTable[] table = new AtlasResources.AtlasStringTable[]
+                    {
+                    """);
+                for (int i = 0; i < idList.Count; i++)
+                {
+                    sw.Write("        new AtlasResources.AtlasStringTable(\"");
+                    sw.Write(idList[i]);
+                    sw.Write("\", ");
+                    sw.Write(i + startIndex);
+                    sw.WriteLine("),");
+                }
+                sw.WriteLine("""
+                    };
+                    
+                    public enum AtlasImageId
+                    {
+                        __ATLAS_BASE_ID = 10000,
+                    """);
+                for (int i = 0; i < idList.Count; i++)
+                {
+                    sw.Write("            ");
+                    sw.Write(idList[i]);
+                    sw.WriteLine("_ID,");
+                }
+                sw.WriteLine("""
+                            }
+
+                            public class AtlasStringTable
+                            {
+                                public AtlasStringTable(string strId, int imgId)
+                                {
+                                    mStringId = strId;
+                                    mImageId = imgId;
+                                }
+
+                                public string mStringId;
+
+                                public int mImageId;
+                            }
+                        }
+                    }
+                    """);
+            }
         }
 
         private void CreateJsonAtlasInfoTo(string res)
@@ -503,7 +660,7 @@ namespace PVZDotNetResGen.Sexy
                     foreach (var subImagesInfo in buildInfo.mSubImages)
                     {
                         string png = Path.Combine(unpackPath, subImagesInfo.mId?.ToLower() + ".png");
-                        if (subImagesInfo.mHash != GetHash(png))
+                        if (!File.Exists(png) || subImagesInfo.mHash != GetHash(png))
                         {
                             rebuild = true;
                             break;
@@ -674,11 +831,11 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
-        private bool ParseReanimResource(XmlElement theElement, ResBase<ReanimRes> reanimRes, string metaPath)
+        private bool ParseReanimResource(ResBase<ReanimRes> reanimRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
             string tempPath = GetTempPath(path) + ".xnb";
-            if (ParseCommonResource(theElement, reanimRes, path))
+            if (true)
             {
                 string tempMetaPath = GetTempMetaPath(path);
                 string unpackPath = LoadImageExtension(GetUnpackPath(path), reanimRes.mDiskFormat);
@@ -716,10 +873,10 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
-        private bool ParseParticleResource(XmlElement theElement, ResBase<ParticleRes> particleRes, string metaPath)
+        private bool ParseParticleResource(ResBase<ParticleRes> particleRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
-            if (ParseCommonResource(theElement, particleRes, RemoveXnbExtension(path)))
+            if (true)
             {
                 string tempMetaPath = GetTempMetaPath(path);
                 string tempPath = GetTempPath(path);
@@ -757,10 +914,10 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
-        private bool ParseTrailResource(XmlElement theElement, ResBase<TrailRes> trailRes, string metaPath)
+        private bool ParseTrailResource(ResBase<TrailRes> trailRes, string metaPath)
         {
             string path = GetRecordedPathFromUnpackMetaPath(metaPath);
-            if (ParseCommonResource(theElement, trailRes, RemoveXnbExtension(path)))
+            if (true)
             {
                 string tempMetaPath = GetTempMetaPath(path);
                 string tempPath = GetTempPath(path);
