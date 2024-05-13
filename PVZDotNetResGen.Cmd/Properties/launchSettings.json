@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PVZDotNetResGen.Cmd": {
+      "commandName": "Project",
+      "commandLineArgs": "pack -u D:\\wprestest\\unpack -c D:\\wprestest\\content -s D:\\wprestest\\code -t D:\\wprestest\\temp"
+    }
+  }
+}
