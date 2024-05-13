@@ -160,13 +160,17 @@ namespace PVZDotNetResGen.Sexy
             string[] txts = Directory.GetFiles(mContentFolderPath, "LawnStrings_*.txt", SearchOption.TopDirectoryOnly);
             foreach (string txt in txts)
             {
-                File.Copy(txt, GetUnpackPath(Path.GetFileName(txt)), true);
+                string unpackPath = GetUnpackPath(Path.GetFileName(txt));
+                EnsureParentFolderExist(unpackPath);
+                File.Copy(txt, unpackPath, true);
             }
             // 处理music
             string[] musics = Directory.GetFiles(GetContentPath("music"), "*", SearchOption.AllDirectories);
             foreach (string music in musics)
             {
-                File.Copy(music, GetUnpackPath(Path.Combine("music", Path.GetFileName(music))), true);
+                string unpackPath = GetUnpackPath(Path.Combine("music", Path.GetFileName(music)));
+                EnsureParentFolderExist(unpackPath);
+                File.Copy(music, unpackPath, true);
             }
             // 处理sys资源和program资源
             Debug.Assert(mProgramRes.Count == 0);
