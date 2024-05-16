@@ -845,7 +845,27 @@ namespace PVZDotNetResGen.Sexy
                 EnsureParentFolderExist(soundUnpackPath);
                 File.Copy(soundContentPath, soundUnpackPath, true);
                 soundRes.mDiskFormat = DiskFormat.Xnb;
-                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(soundPath), soundRes);
+                string metaPath = GetUnpackMetaPath(soundPath);
+                bool finished = false;
+                if (mExistedPath.Contains(soundUnpackPath))
+                {
+                    Console.WriteLine("Repeat sound res:" + path);
+                    ResBase<SoundRes>? repeatRes = AOTJson.TryDeserializeFromFile<ResBase>(metaPath) as ResBase<SoundRes>;
+                    if (repeatRes != null)
+                    {
+                        (repeatRes.mSameIds ??= []).Add(soundRes);
+                        AOTJson.TrySerializeToFile<ResBase>(metaPath, repeatRes);
+                        finished = true;
+                    }
+                }
+                else
+                {
+                    mExistedPath.Add(soundUnpackPath);
+                }
+                if (!finished)
+                {
+                    AOTJson.TrySerializeToFile<ResBase>(metaPath, soundRes);
+                }
             }
             else
             {
@@ -867,6 +887,7 @@ namespace PVZDotNetResGen.Sexy
                 bool finished = false;
                 if (mExistedPath.Contains(fontUnpackPath))
                 {
+                    Console.WriteLine("Repeat font res:" + path);
                     ResBase<FontRes>? repeatRes = AOTJson.TryDeserializeFromFile<ResBase>(metaPath) as ResBase<FontRes>;
                     if (repeatRes != null)
                     {
