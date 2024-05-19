@@ -675,6 +675,16 @@ namespace PVZDotNetResGen.Sexy
                     SurfaceFormat aSurfaceFormat = imageRes.mUniversalProp.mSurface ?? SurfaceFormat.Bgra4444;
                     int width = imageRes.mUniversalProp.mWidth ?? 2048;
                     int height = imageRes.mUniversalProp.mHeight ?? 2048;
+                    if (width > 4096)
+                    {
+                        Console.WriteLine("{0}:The width cannot exceed 4096", imageRes.mId);
+                        width = 4096;
+                    }
+                    if (height > 4096)
+                    {
+                        Console.WriteLine("{0}:The height cannot exceed 4096", imageRes.mId);
+                        height = 4096;
+                    }
                     int extrude = imageRes.mUniversalProp.mExtrude ?? 1;
                     // 创建所有没有meta的图像的meta
                     List<MaxRectsBinPack.BinRect> sizeList = new List<MaxRectsBinPack.BinRect>();
