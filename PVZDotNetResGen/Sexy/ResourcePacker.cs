@@ -22,7 +22,7 @@ namespace PVZDotNetResGen.Sexy
         private readonly string mBuildCacheFolderPath = buildCacheFolderPath;
         private Dictionary<string, XmlNode> mXmlNodeList = [];
         private HashSet<string> mExistedImageId = [];
-        private Dictionary<string, Dictionary<string, List<SpriteItem>>> mSubImages = [];
+        private Dictionary<string, Dictionary<string, (string, List<SpriteItem>)>> mSubImages = [];
         private readonly BuildPlatform mPlatform = platform;
         private bool mBuildInAtlasInfo = true;
 
@@ -230,7 +230,7 @@ namespace PVZDotNetResGen.Sexy
             List<string> idList = [];
             foreach (var pair in thisSubImages)
             {
-                foreach (var sub in pair.Value)
+                foreach (var sub in pair.Value.Item2)
                 {
                     idList.Add(sub.mId);
                 }
@@ -390,7 +390,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 AtlasInfo atlasInfo = new AtlasInfo
                 {
-                    mSubImages = pair.Value,
+                    mSubImages = pair.Value.Item2,
                 };
                 string jsonPath = Path.Combine(path, pair.Key + ".atlas.json");
                 EnsureParentFolderExist(jsonPath);
@@ -419,7 +419,7 @@ namespace PVZDotNetResGen.Sexy
                 sw.WriteLine("    {");
                 foreach (var pair in thisSubImages)
                 {
-                    var list = pair.Value;
+                    var list = pair.Value.Item2;
                     sw.Write("        public override void Unpack");
                     sw.Write(pair.Key);
                     sw.WriteLine("AtlasImages()");
@@ -466,8 +466,8 @@ namespace PVZDotNetResGen.Sexy
                     sw.WriteLine("\"] = array;");
                     sw.WriteLine("            for (int i = 0; i < array.Length; i++)");
                     sw.WriteLine("            {");
-                    sw.Write("                array[i].mpImage = new Image(Resources.IMAGE_");
-                    sw.Write(pair.Key.ToUpper());
+                    sw.Write("                array[i].mpImage = new Image(Resources.");
+                    sw.Write(pair.Value.Item1.ToUpper());
                     sw.WriteLine(", array[i].mX, array[i].mY, array[i].mWidth, array[i].mHeight);");
                     sw.WriteLine("                array[i].mpImage.mNumRows = array[i].mRows;");
                     sw.WriteLine("                array[i].mpImage.mNumCols = array[i].mCols;");
@@ -784,12 +784,12 @@ namespace PVZDotNetResGen.Sexy
                             res = thisRes;
                         }
                     }
-                    if (!mSubImages.TryGetValue(res, out Dictionary<string, List<SpriteItem>>? value))
+                    if (!mSubImages.TryGetValue(res, out var value))
                     {
                         value = ([]);
                         mSubImages.Add(res, value);
                     }
-                    value.TryAdd(atlasName, subImages);
+                    value.TryAdd(atlasName, (imageRes.mId, subImages));
                 }
             }
             EnsureParentFolderExist(contentPath);
