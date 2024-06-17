@@ -4,6 +4,7 @@ using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
 using PVZDotNetResGen.Utils.JsonHelper;
+using PVZDotNetResGen.Utils.XnbContent;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -1132,7 +1133,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 using (FileStream xnbStream = File.OpenRead(path))
                 {
-                    return XnbTexture2DCoder.Shared.ReadOne(Path.GetFileName(path), xnbStream);
+                    return (IDisposableBitmap)XnbHelper.Decode(Path.GetFileName(path), xnbStream);
                 }
             }
             return new StbBitmap(path);
@@ -1144,9 +1145,9 @@ namespace PVZDotNetResGen.Sexy
             {
                 using (FileStream outStream = File.Create(path))
                 {
-                    XnbTexture2DCoder textureWriter = new XnbTexture2DCoder();
-                    textureWriter.mSurfaceFormat = surface;
-                    textureWriter.WriteOne(bitmap, Path.GetFileName(path), outStream);
+                    XnbContent content = new XnbContent(bitmap, 0);
+                    XnbTexture2DCoder.SurfaceFormat = surface;
+                    XnbHelper.Encode(content, Path.GetFileName(path), outStream);
                 }
             }
             else if (format == TextureFormat.Png)

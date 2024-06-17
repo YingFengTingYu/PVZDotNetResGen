@@ -31,7 +31,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                reanim.mDoScale = (ReanimScaleType)sbyte.Parse(reader.Value);
+                                reanim.DoScale = (ReanimScaleType)sbyte.Parse(reader.Value);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -42,18 +42,19 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                reanim.mFPS = float.Parse(reader.Value);
+                                reanim.Fps = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "track")
                         {
-                            reanim.mTracks.Add(ReadReanimTrack(reader));
+                            reanim.Tracks.Add(ReadReanimTrack(reader));
                         }
                     }
                 }
             }
+
             return reanim;
         }
 
@@ -76,18 +77,19 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                track.mName = reader.Value;
+                                track.Name = reader.Value;
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "t")
                         {
-                            track.mTransforms.Add(ReadReanimTransform(reader));
+                            track.Transforms.Add(ReadReanimTransform(reader));
                         }
                     }
                 }
             }
+
             return track;
         }
 
@@ -110,7 +112,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mTransX = float.Parse(reader.Value);
+                                transform.TransX = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -121,7 +123,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mTransY = float.Parse(reader.Value);
+                                transform.TransY = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -132,7 +134,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mSkewX = float.Parse(reader.Value);
+                                transform.SkewX = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -143,7 +145,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mSkewY = float.Parse(reader.Value);
+                                transform.SkewY = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -154,7 +156,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mScaleX = float.Parse(reader.Value);
+                                transform.ScaleX = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -165,7 +167,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mScaleY = float.Parse(reader.Value);
+                                transform.ScaleY = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -176,7 +178,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mFrame = float.Parse(reader.Value);
+                                transform.Frame = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -187,7 +189,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mAlpha = float.Parse(reader.Value);
+                                transform.Alpha = float.Parse(reader.Value, CultureInfo.InvariantCulture);
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -198,7 +200,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mImage = reader.Value;
+                                transform.Image = reader.Value;
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -209,7 +211,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mFont = reader.Value;
+                                transform.Font = reader.Value;
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -220,7 +222,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                             {
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.Text);
-                                transform.mText = reader.Value;
+                                transform.Text = reader.Value;
                                 Debug.Assert(reader.Read());
                                 Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
                             }
@@ -228,6 +230,7 @@ namespace PVZDotNetResGen.Sexy.Reanim
                     }
                 }
             }
+
             return transform;
         }
 
@@ -235,15 +238,15 @@ namespace PVZDotNetResGen.Sexy.Reanim
         {
             XmlWriterSettings settings = new XmlWriterSettings
             {
-                Indent = true,
-                NewLineOnAttributes = true,
-                ConformanceLevel = ConformanceLevel.Fragment,
+                ConformanceLevel = ConformanceLevel.Fragment
             };
             using (XmlWriter writer = XmlWriter.Create(stream, settings))
             {
-                writer.WriteElementString("doScale", ((sbyte)content.mDoScale).ToString());
-                writer.WriteElementString("fps", content.mFPS.ToString("0.###"));
-                List<ReanimatorTrack> tracks = content.mTracks;
+                writer.WriteElementString("doScale", ((sbyte)content.DoScale).ToString());
+                writer.WriteRaw("\r\n");
+                writer.WriteElementString("fps", content.Fps.ToString("0.###", CultureInfo.InvariantCulture));
+                writer.WriteRaw("\r\n");
+                List<ReanimatorTrack> tracks = content.Tracks;
                 for (int i = 0; i < tracks.Count; i++)
                 {
                     WriteReanimTrack(tracks[i], writer);
@@ -254,63 +257,87 @@ namespace PVZDotNetResGen.Sexy.Reanim
         private void WriteReanimTrack(ReanimatorTrack track, XmlWriter writer)
         {
             writer.WriteStartElement("track");
-            writer.WriteElementString("name", track.mName);
-            List<ReanimatorTransform> transforms = track.mTransforms;
+            writer.WriteRaw("\r\n");
+            writer.WriteElementString("name", track.Name);
+            writer.WriteRaw("\r\n");
+            List<ReanimatorTransform> transforms = track.Transforms;
             for (int i = 0; i < transforms.Count; i++)
             {
                 WriteReanimTransform(transforms[i], writer);
             }
+
             writer.WriteEndElement();
+            writer.WriteRaw("\r\n");
         }
 
         private void WriteReanimTransform(ReanimatorTransform transform, XmlWriter writer)
         {
-            writer.WriteStartElement("t");
-            if (transform.mTransX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+            if (transform.IsNull())
             {
-                writer.WriteElementString("x", transform.mTransX.ToString("0.###"));
+                writer.WriteRaw("<t></t>");
             }
-            if (transform.mTransY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+            else
             {
-                writer.WriteElementString("y", transform.mTransY.ToString("0.###"));
+                writer.WriteStartElement("t");
+                if (transform.TransX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("x", transform.TransX.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.TransY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("y", transform.TransY.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.SkewX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("kx", transform.SkewX.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.SkewY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("ky", transform.SkewY.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.ScaleX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("sx", transform.ScaleX.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.ScaleY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("sy", transform.ScaleY.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.Frame != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("f", transform.Frame.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.Alpha != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
+                {
+                    writer.WriteElementString("a", transform.Alpha.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+
+                if (transform.Image != null)
+                {
+                    writer.WriteElementString("i", transform.Image);
+                }
+
+                if (transform.Font != null)
+                {
+                    writer.WriteElementString("font", transform.Font);
+                }
+
+                if (transform.Text != null)
+                {
+                    writer.WriteElementString("text", transform.Text);
+                }
+
+                writer.WriteEndElement();
             }
-            if (transform.mSkewX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
-            {
-                writer.WriteElementString("kx", transform.mSkewX.ToString("0.###"));
-            }
-            if (transform.mSkewY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
-            {
-                writer.WriteElementString("ky", transform.mSkewY.ToString("0.###"));
-            }
-            if (transform.mScaleX != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
-            {
-                writer.WriteElementString("sx", transform.mScaleX.ToString("0.###"));
-            }
-            if (transform.mScaleY != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
-            {
-                writer.WriteElementString("sy", transform.mScaleY.ToString("0.###"));
-            }
-            if (transform.mFrame != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
-            {
-                writer.WriteElementString("f", transform.mFrame.ToString("0.###"));
-            }
-            if (transform.mAlpha != ReanimHelper.DEFAULT_FIELD_PLACEHOLDER)
-            {
-                writer.WriteElementString("a", transform.mAlpha.ToString("0.###"));
-            }
-            if (transform.mImage != null)
-            {
-                writer.WriteElementString("i", transform.mImage);
-            }
-            if (transform.mFont != null)
-            {
-                writer.WriteElementString("font", transform.mFont);
-            }
-            if (transform.mText != null)
-            {
-                writer.WriteElementString("text", transform.mText);
-            }
-            writer.WriteEndElement();
+
+            writer.WriteRaw("\r\n");
         }
     }
 }

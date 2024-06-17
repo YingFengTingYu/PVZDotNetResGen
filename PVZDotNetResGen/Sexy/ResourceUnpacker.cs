@@ -12,6 +12,7 @@ using System.Diagnostics;
 using PVZDotNetResGen.Utils.JsonHelper;
 using PVZDotNetResGen.Sexy.Image;
 using PVZDotNetResGen.Sexy.Reanim;
+using PVZDotNetResGen.Utils.XnbContent;
 
 namespace PVZDotNetResGen.Sexy
 {
@@ -20,7 +21,7 @@ namespace PVZDotNetResGen.Sexy
         private readonly string mContentFolderPath = contentFolderPath;
         private readonly string mCodeFolderPath = codeFolderPath;
         private readonly string mUnpackFolderPath = unpackFolderPath;
-        private string mDefaultPath = "/";
+        private string mDefaultPath = "";
         private string mDefaultIdPrefix = "";
         private readonly List<ResBase> mProgramRes = [];
         private readonly List<ResBase> mSysFontRes = [];
@@ -536,7 +537,14 @@ namespace PVZDotNetResGen.Sexy
                 {
                     if (current.Name == "path")
                     {
-                        mDefaultPath = current.Value + "/";
+                        if (string.IsNullOrEmpty(current.Value))
+                        {
+                            mDefaultPath = "";
+                        }
+                        else
+                        {
+                            mDefaultPath = current.Value + "/";
+                        }
                     }
                     if (current.Name == "idprefix")
                     {
@@ -686,7 +694,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 using (FileStream xnbStream = File.OpenRead(path))
                 {
-                    return XnbTexture2DCoder.Shared.ReadOne(Path.GetFileName(path), xnbStream);
+                    return (IDisposableBitmap)XnbHelper.Decode(Path.GetFileName(path), xnbStream).PrimaryResource;
                 }
             }
             return new StbBitmap(path);

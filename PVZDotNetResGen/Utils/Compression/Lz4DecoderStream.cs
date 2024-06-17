@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace PVZDotNetResGen.Utils.XnbContent
+namespace PVZDotNetResGen.Utils.Compression
 {
 	internal class Lz4DecoderStream(Stream input, long inputLength = long.MaxValue) : Stream
 	{
@@ -317,7 +317,7 @@ namespace PVZDotNetResGen.Utils.XnbContent
 
 			if( nToBuf == DecBufLen )
 			{
-				Buffer.BlockCopy( buffer, repPos, decBuf, 0, DecBufLen );
+                Buffer.BlockCopy( buffer, repPos, decBuf, 0, DecBufLen );
 				decodeBufferPos = 0;
 			}
 			else

@@ -5,7 +5,7 @@
 using System;
 using System.IO;
 
-namespace PVZDotNetResGen.Utils.XnbContent
+namespace PVZDotNetResGen.Utils.Compression
 {
     internal class LzxDecoderStream : Stream
     {

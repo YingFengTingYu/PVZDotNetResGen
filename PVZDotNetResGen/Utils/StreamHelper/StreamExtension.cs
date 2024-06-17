@@ -508,6 +508,32 @@ namespace PVZDotNetResGen.Utils.StreamHelper
             }
         }
 
+        public static int WriteStringWith7BitEncodedInt32Head(this Stream stream, string? value, Encoding encoding)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                stream.Write7BitEncodedInt32(0x0);
+                return 0;
+            }
+            int size = encoding.GetMaxByteCount(value.Length);
+            if (size <= 0x800)
+            {
+                Span<byte> buffer = stackalloc byte[size];
+                size = encoding.GetBytes(value, buffer);
+                stream.Write7BitEncodedInt32(size);
+                stream.Write(buffer[..size]);
+                return size;
+            }
+            using (NativeMemoryOwner owner = new NativeMemoryOwner((uint)size))
+            {
+                Span<byte> buffer = owner.AsSpan();
+                size = encoding.GetBytes(value, buffer);
+                stream.Write7BitEncodedInt32(size);
+                stream.Write(buffer[..size]);
+                return size;
+            }
+        }
+
         public static long CopyLengthTo(this Stream src, Stream destination, long len)
         {
             const long BUFFER_LEN = 81920;
