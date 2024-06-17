@@ -18,6 +18,7 @@ namespace PVZDotNetResGen.Utils.JsonHelper
     [JsonSerializable(typeof(SurfaceFormat))]
     [JsonSerializable(typeof(DiskFormat))]
     [JsonSerializable(typeof(JsonShell<WPAtlasInfoAnalyzer.AtlasJson>))]
+    [JsonSerializable(typeof(JsonShellList<ResBase>))]
     [JsonSerializable(typeof(JsonShell<ResBase>))]
     [JsonSerializable(typeof(JsonShell<PackInfo>))]
     [JsonSerializable(typeof(JsonShell<BuildInfo>))]

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 
 namespace PVZDotNetResGen.Utils.JsonHelper
@@ -64,6 +65,55 @@ namespace PVZDotNetResGen.Utils.JsonHelper
             where T : class, IJsonVersionCheckable
         {
             return JsonSerializer.Deserialize(stream, typeof(JsonShell<T>), s_Context) is JsonShell<T> shell && shell.Version == T.JsonVersion ? shell.Content : default;
+        }
+
+        public static bool TrySerializeListToFile<T>(string filePath, List<T?>? value)
+            where T : class, IJsonVersionCheckable
+        {
+            try
+            {
+                using (Stream stream = File.Create(filePath))
+                {
+                    SerializeList(stream, value);
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static List<T?>? TryDeserializeListFromFile<T>(string filePath)
+            where T : class, IJsonVersionCheckable
+        {
+            try
+            {
+                using Stream packInfoStream = File.OpenRead(filePath);
+                return DeserializeList<T>(packInfoStream);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static void SerializeList<T>(Stream stream, List<T?>? value)
+            where T : class, IJsonVersionCheckable
+        {
+            JsonSerializer.Serialize(stream, new JsonShellList<T>
+            {
+                Source = typeof(T).AssemblyQualifiedName,
+                Author = "YingFengTingYu",
+                Version = T.JsonVersion,
+                Content = value
+            }, typeof(JsonShellList<T>), s_Context);
+        }
+
+        public static List<T?>? DeserializeList<T>(Stream stream)
+            where T : class, IJsonVersionCheckable
+        {
+            return JsonSerializer.Deserialize(stream, typeof(JsonShellList<T>), s_Context) is JsonShellList<T> shell && shell.Version == T.JsonVersion ? shell.Content : default;
         }
     }
 }

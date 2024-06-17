@@ -4,7 +4,7 @@ using PVZDotNetResGen.Sexy.Image;
 using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
-using PVZDotNetResGen.Utils.JsonHelper;
+using PVZDotNetResGen.Utils.XnbContent;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,7 +30,7 @@ namespace PVZDotNetResGen.Tests
             WPAtlasInfoAnalyzer.UnpackAsJson(inPath, outFolder);
         }
 
-        [TestCase("D:\\CSharp\\PVZ.NET\\Lawn_PCDX\\Content", "D:\\CSharp\\PVZ.NET\\Lawn_Shared\\Sexy\\Resource", "files/UnpackTests/Unpack")]
+        [TestCase("D:\\CSharp\\pvz_combination\\Lawn_PCDX\\bin\\Debug\\net6.0-windows\\Content", "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource", "D:\\整合版解包")]
         public void UnpackResources(string inFolder, string codeFolder, string outFolder)
         {
             ResourceUnpacker unpacker = new ResourceUnpacker(inFolder, codeFolder, outFolder);
@@ -41,11 +41,19 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("files/UnpackTests/Unpack", "D:\\test\\code", "D:\\test\\real", "D:\\test\\temp")]
-        public void PackResources(string unpackFolder, string codeFolder, string contentFolder, string tempFolder)
+        [TestCase("D:\\CSharp\\PVZCombinationRes\\unpack",
+            "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
+            "D:\\CSharp\\pvz_combination\\Lawn_PCDX\\bin\\Debug\\net6.0-windows\\Content",
+            "D:\\CSharp\\PVZCombinationRes\\cache\\pcdx",
+            BuildPlatform.PCDX)]
+        [TestCase("D:\\CSharp\\PVZCombinationRes\\unpack",
+            "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
+            "D:\\CSharp\\pvz_combination\\Lawn_Android\\Assets\\Content",
+            "D:\\CSharp\\PVZCombinationRes\\cache\\android",
+            BuildPlatform.Android)]
+        public void PackResources(string unpackFolder, string codeFolder, string contentFolder, string tempFolder, BuildPlatform platform)
         {
-            Directory.CreateDirectory("files/UnpackTests");
-            ResourcePacker packer = new ResourcePacker(contentFolder, codeFolder, unpackFolder, tempFolder);
+            ResourcePacker packer = new ResourcePacker(contentFolder, codeFolder, unpackFolder, tempFolder, platform);
             IEnumerator<bool> updater = packer.Update();
             while (updater.MoveNext())
             {
@@ -53,27 +61,25 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("D:\\PlantsZombies.xnb", "D:\\PlantsZombies.png")]
+        [TestCase("D:\\Pile.xnb", "D:\\Pile2.png")]
         public void DecodeXnbTexture(string inPath, string outPath)
         {
             using (FileStream inStream = File.OpenRead(inPath))
             {
-                XnbTexture2DCoder textureReader = new XnbTexture2DCoder();
-                using IDisposableBitmap bitmap = textureReader.ReadOne(Path.GetFileName(inPath), inStream);
+                using IDisposableBitmap bitmap = (IDisposableBitmap)XnbHelper.Decode(Path.GetFileName(inPath), inStream).PrimaryResource;
                 bitmap.SaveAsPng(outPath);
             }
         }
 
-        [TestCase("D:\\PlantsZombies.png", "D:\\PlantsZombiesWind.xnb")]
+        [TestCase("D:\\Pile.png", "D:\\Pile.xnb")]
         public void EncodeXnbTexture(string inPath, string outPath)
         {
             using (StbBitmap bitmap = new StbBitmap(inPath))
             {
                 using (FileStream outStream = File.Create(outPath))
                 {
-                    XnbTexture2DCoder textureWriter = new XnbTexture2DCoder();
-                    textureWriter.mSurfaceFormat = SurfaceFormat.Rgba8Etc2;
-                    textureWriter.WriteOne(bitmap, Path.GetFileName(outPath), outStream);
+                    XnbTexture2DCoder.SurfaceFormat = SurfaceFormat.Rgba8Etc2;
+                    XnbHelper.Encode(new XnbContent(bitmap, 0), Path.GetFileName(outPath), outStream);
                 }
             }
         }

@@ -10,9 +10,10 @@ using PathNoAtlasInfo = (string Path, string DestPath);
 using PathAndAtlasInfo = (string Path, string DestPath, System.Collections.Generic.Dictionary<string, (System.Collections.Generic.List<PVZDotNetResGen.Sexy.Atlas.SpriteItem>, string)> Atlas);
 using System.Diagnostics;
 using PVZDotNetResGen.Utils.JsonHelper;
-using PVZDotNetResGen.Sexy.Image;
 using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.XnbContent;
+using Xabe.FFmpeg;
+using PVZDotNetResGen.Sexy.Music;
 
 namespace PVZDotNetResGen.Sexy
 {
@@ -144,14 +145,11 @@ namespace PVZDotNetResGen.Sexy
                 }
             }
             // 处理动画和粒子特效
-            packInfo.mGroups.Add("LoadingReanims");
             string[] reanims = Directory.GetFiles(GetContentPath("reanim"), "*", SearchOption.AllDirectories);
             foreach (string reanim in reanims)
             {
                 DoLoadReanim("LoadingReanims", reanim);
             }
-            packInfo.mGroups.Add("LoadingParticles");
-            packInfo.mGroups.Add("LoadingTrails");
             string[] particles = Directory.GetFiles(GetContentPath("particles"), "*", SearchOption.AllDirectories);
             foreach (string particle in particles)
             {
@@ -166,12 +164,10 @@ namespace PVZDotNetResGen.Sexy
                 File.Copy(txt, unpackPath, true);
             }
             // 处理music
-            string[] musics = Directory.GetFiles(GetContentPath("music"), "*", SearchOption.AllDirectories);
+            string[] musics = Directory.GetFiles(GetContentPath("music"), "*.xnb", SearchOption.AllDirectories);
             foreach (string music in musics)
             {
-                string unpackPath = GetUnpackPath(Path.Combine("music", Path.GetFileName(music)));
-                EnsureParentFolderExist(unpackPath);
-                File.Copy(music, unpackPath, true);
+                DoLoadMusic(music);
             }
             // 处理sys资源和program资源
             Debug.Assert(mProgramRes.Count == 0);
@@ -191,60 +187,57 @@ namespace PVZDotNetResGen.Sexy
 
         private bool ParseAtlasResource(XmlNode theElement, string groupId)
         {
-            if (ParseCommonResource(theElement, out ResBase<AtlasRes>? atlasRes, groupId, out string? path))
+            if (ParseCommonResource(theElement, out AtlasRes? atlasRes, groupId, out string? path))
             {
                 XmlAttributeCollection? attributes = theElement.Attributes;
-                atlasRes.mUniversalProp.mWidth = 2048;
-                atlasRes.mUniversalProp.mHeight = 2048;
-                atlasRes.mUniversalProp.mExtrude = 1;
-                atlasRes.mUniversalProp.mSurface = SurfaceFormat.Color;
-                (atlasRes.mPCDXProp ??= new AtlasRes()).mSurface = SurfaceFormat.Dxt5;
-                (atlasRes.mPCGLProp ??= new AtlasRes()).mSurface = SurfaceFormat.Dxt5;
-                (atlasRes.mAndroidProp ??= new AtlasRes()).mSurface = SurfaceFormat.Rgba8Etc2;
-                (atlasRes.mIOSProp ??= new AtlasRes()).mSurface = SurfaceFormat.Rgba8Etc2;
+                atlasRes.mWidth = 2048;
+                atlasRes.mHeight = 2048;
+                atlasRes.mExtrude = 1;
+                atlasRes.mSurface = new PlatformSurfaceFormat { Default = SurfaceFormat.Color };
+                atlasRes.mFormat = TextureFormat.Png;
                 if (attributes != null)
                 {
-                    atlasRes.mUniversalProp.mNoPal = attributes["nopal"] != null;
-                    atlasRes.mUniversalProp.mA4R4G4B4 = attributes["a4r4g4b4"] != null;
-                    atlasRes.mUniversalProp.mDDSurface = attributes["ddsurface"] != null;
-                    atlasRes.mUniversalProp.mNoBits = attributes["nobits"] != null;
-                    atlasRes.mUniversalProp.mNoBits2D = attributes["nobits2d"] != null;
-                    atlasRes.mUniversalProp.mNoBits3D = attributes["nobits3d"] != null;
-                    atlasRes.mUniversalProp.mA8R8G8B8 = attributes["a8r8g8b8"] != null;
-                    atlasRes.mUniversalProp.mR5G6B5 = attributes["r5g6b5"] != null;
-                    atlasRes.mUniversalProp.mA1R5G5B5 = attributes["a1r5g5b5"] != null;
-                    atlasRes.mUniversalProp.mMinSubdivide = attributes["minsubdivide"] != null;
-                    atlasRes.mUniversalProp.mNoAlpha = attributes["noalpha"] != null;
-                    atlasRes.mUniversalProp.mAlphaColor = 16777215U;
+                    atlasRes.mNoPal = attributes["nopal"] != null;
+                    atlasRes.mA4R4G4B4 = attributes["a4r4g4b4"] != null;
+                    atlasRes.mDDSurface = attributes["ddsurface"] != null;
+                    atlasRes.mNoBits = attributes["nobits"] != null;
+                    atlasRes.mNoBits2D = attributes["nobits2d"] != null;
+                    atlasRes.mNoBits3D = attributes["nobits3d"] != null;
+                    atlasRes.mA8R8G8B8 = attributes["a8r8g8b8"] != null;
+                    atlasRes.mR5G6B5 = attributes["r5g6b5"] != null;
+                    atlasRes.mA1R5G5B5 = attributes["a1r5g5b5"] != null;
+                    atlasRes.mMinSubdivide = attributes["minsubdivide"] != null;
+                    atlasRes.mNoAlpha = attributes["noalpha"] != null;
+                    atlasRes.mAlphaColor = 16777215U;
                     foreach (XmlAttribute current in attributes)
                     {
                         if (current.Name == "surface")
                         {
-                            atlasRes.mUniversalProp.mSurface = (SurfaceFormat)Enum.Parse(typeof(SurfaceFormat), current.InnerText, true);
+                            atlasRes.mSurface.Default = (SurfaceFormat)Enum.Parse(typeof(SurfaceFormat), current.InnerText, true);
                         }
                         else if (current.Name == "alphaimage")
                         {
-                            atlasRes.mUniversalProp.mAlphaImage = mDefaultPath + current.InnerText;
+                            atlasRes.mAlphaImage = mDefaultPath + current.InnerText;
                         }
                         else if (current.Name == "alphacolor")
                         {
-                            atlasRes.mUniversalProp.mAlphaColor = Convert.ToUInt32(current.InnerText);
+                            atlasRes.mAlphaColor = Convert.ToUInt32(current.InnerText);
                         }
                         else if (current.Name == "variant")
                         {
-                            atlasRes.mUniversalProp.mVariant = current.InnerText;
+                            atlasRes.mVariant = current.InnerText;
                         }
                         else if (current.Name == "alphagrid")
                         {
-                            atlasRes.mUniversalProp.mAlphaGrid = current.InnerText;
+                            atlasRes.mAlphaGrid = current.InnerText;
                         }
                         else if (current.Name == "languageSpecific")
                         {
-                            atlasRes.mUniversalProp.mLanguageSpecific = Convert.ToBoolean(current.InnerText);
+                            atlasRes.mLanguageSpecific = Convert.ToBoolean(current.InnerText);
                         }
                         else if (current.Name == "format")
                         {
-                            atlasRes.mUniversalProp.mFormat = (TextureFormat)Enum.Parse(typeof(TextureFormat), current.InnerText, true);
+                            atlasRes.mFormat = (TextureFormat)Enum.Parse(typeof(TextureFormat), current.InnerText, true);
                         }
                     }
                 }
@@ -263,106 +256,103 @@ namespace PVZDotNetResGen.Sexy
 
         private bool ParseImageResource(XmlNode theElement, string groupId)
         {
-            if (ParseCommonResource(theElement, out ResBase<ImageRes>? imageRes, groupId, out string? path))
+            if (ParseCommonResource(theElement, out ImageRes? imageRes, groupId, out string? path))
             {
                 XmlAttributeCollection? attributes = theElement.Attributes;
-                imageRes.mUniversalProp.mSurface = SurfaceFormat.Color;
-                (imageRes.mPCDXProp ??= new ImageRes()).mSurface = SurfaceFormat.Dxt5;
-                (imageRes.mPCGLProp ??= new ImageRes()).mSurface = SurfaceFormat.Dxt5;
-                (imageRes.mAndroidProp ??= new ImageRes()).mSurface = SurfaceFormat.Rgba8Etc2;
-                (imageRes.mIOSProp ??= new ImageRes()).mSurface = SurfaceFormat.Rgba8Etc2;
+                imageRes.mSurface = new PlatformSurfaceFormat { Default = SurfaceFormat.Color };
+                imageRes.mFormat = TextureFormat.Png;
                 if (attributes != null)
                 {
-                    imageRes.mUniversalProp.mNoPal = attributes["nopal"] != null;
-                    imageRes.mUniversalProp.mA4R4G4B4 = attributes["a4r4g4b4"] != null;
-                    imageRes.mUniversalProp.mDDSurface = attributes["ddsurface"] != null;
-                    imageRes.mUniversalProp.mNoBits = attributes["nobits"] != null;
-                    imageRes.mUniversalProp.mNoBits2D = attributes["nobits2d"] != null;
-                    imageRes.mUniversalProp.mNoBits3D = attributes["nobits3d"] != null;
-                    imageRes.mUniversalProp.mA8R8G8B8 = attributes["a8r8g8b8"] != null;
-                    imageRes.mUniversalProp.mR5G6B5 = attributes["r5g6b5"] != null;
-                    imageRes.mUniversalProp.mA1R5G5B5 = attributes["a1r5g5b5"] != null;
-                    imageRes.mUniversalProp.mMinSubdivide = attributes["minsubdivide"] != null;
-                    imageRes.mUniversalProp.mNoAlpha = attributes["noalpha"] != null;
-                    imageRes.mUniversalProp.mAlphaColor = 16777215U;
-                    imageRes.mUniversalProp.mRows = 1;
-                    imageRes.mUniversalProp.mCols = 1;
-                    imageRes.mUniversalProp.mAnim = AnimType.None;
+                    imageRes.mNoPal = attributes["nopal"] != null;
+                    imageRes.mA4R4G4B4 = attributes["a4r4g4b4"] != null;
+                    imageRes.mDDSurface = attributes["ddsurface"] != null;
+                    imageRes.mNoBits = attributes["nobits"] != null;
+                    imageRes.mNoBits2D = attributes["nobits2d"] != null;
+                    imageRes.mNoBits3D = attributes["nobits3d"] != null;
+                    imageRes.mA8R8G8B8 = attributes["a8r8g8b8"] != null;
+                    imageRes.mR5G6B5 = attributes["r5g6b5"] != null;
+                    imageRes.mA1R5G5B5 = attributes["a1r5g5b5"] != null;
+                    imageRes.mMinSubdivide = attributes["minsubdivide"] != null;
+                    imageRes.mNoAlpha = attributes["noalpha"] != null;
+                    imageRes.mAlphaColor = 16777215U;
+                    imageRes.mRows = 1;
+                    imageRes.mCols = 1;
+                    imageRes.mAnim = AnimType.None;
                     foreach (XmlAttribute current in attributes)
                     {
                         if (current.Name == "surface")
                         {
-                            imageRes.mUniversalProp.mSurface = (SurfaceFormat)Enum.Parse(typeof(SurfaceFormat), current.InnerText, true);
+                            imageRes.mSurface.Default = (SurfaceFormat)Enum.Parse(typeof(SurfaceFormat), current.InnerText, true);
                         }
                         else if (current.Name == "alphaimage")
                         {
-                            imageRes.mUniversalProp.mAlphaImage = mDefaultPath + current.InnerText;
+                            imageRes.mAlphaImage = mDefaultPath + current.InnerText;
                         }
                         else if (current.Name == "alphacolor")
                         {
-                            imageRes.mUniversalProp.mAlphaColor = Convert.ToUInt32(current.InnerText);
+                            imageRes.mAlphaColor = Convert.ToUInt32(current.InnerText);
                         }
                         else if (current.Name == "variant")
                         {
-                            imageRes.mUniversalProp.mVariant = current.InnerText;
+                            imageRes.mVariant = current.InnerText;
                         }
                         else if (current.Name == "alphagrid")
                         {
-                            imageRes.mUniversalProp.mAlphaGrid = current.InnerText;
+                            imageRes.mAlphaGrid = current.InnerText;
                         }
                         else if (current.Name == "rows")
                         {
-                            imageRes.mUniversalProp.mRows = Convert.ToInt32(current.InnerText);
+                            imageRes.mRows = Convert.ToInt32(current.InnerText);
                         }
                         else if (current.Name == "cols")
                         {
-                            imageRes.mUniversalProp.mCols = Convert.ToInt32(current.InnerText);
+                            imageRes.mCols = Convert.ToInt32(current.InnerText);
                         }
                         else if (current.Name == "languageSpecific")
                         {
-                            imageRes.mUniversalProp.mLanguageSpecific = Convert.ToBoolean(current.InnerText);
+                            imageRes.mLanguageSpecific = Convert.ToBoolean(current.InnerText);
                         }
                         else if (current.Name == "format")
                         {
-                            imageRes.mUniversalProp.mFormat = (TextureFormat)Enum.Parse(typeof(TextureFormat), current.InnerText, true);
+                            imageRes.mFormat = (TextureFormat)Enum.Parse(typeof(TextureFormat), current.InnerText, true);
                         }
                         else if (current.Name == "anim")
                         {
                             switch (current.InnerText)
                             {
                                 case "none":
-                                    imageRes.mUniversalProp.mAnim = AnimType.None;
+                                    imageRes.mAnim = AnimType.None;
                                     break;
                                 case "once":
-                                    imageRes.mUniversalProp.mAnim = AnimType.Once;
+                                    imageRes.mAnim = AnimType.Once;
                                     break;
                                 case "loop":
-                                    imageRes.mUniversalProp.mAnim = AnimType.Loop;
+                                    imageRes.mAnim = AnimType.Loop;
                                     break;
                                 case "pingpong":
-                                    imageRes.mUniversalProp.mAnim = AnimType.PingPong;
+                                    imageRes.mAnim = AnimType.PingPong;
                                     break;
                             }
                         }
                         else if (current.Name == "framedelay")
                         {
-                            imageRes.mUniversalProp.mFrameDelay = Convert.ToInt32(current.InnerText);
+                            imageRes.mFrameDelay = Convert.ToInt32(current.InnerText);
                         }
                         else if (current.Name == "begindelay")
                         {
-                            imageRes.mUniversalProp.mBeginDelay = Convert.ToInt32(current.InnerText);
+                            imageRes.mBeginDelay = Convert.ToInt32(current.InnerText);
                         }
                         else if (current.Name == "enddelay")
                         {
-                            imageRes.mUniversalProp.mEndDelay = Convert.ToInt32(current.InnerText);
+                            imageRes.mEndDelay = Convert.ToInt32(current.InnerText);
                         }
                         else if (current.Name == "perframedelay")
                         {
-                            imageRes.mUniversalProp.mPerFrameDelay = current.InnerText;
+                            imageRes.mPerFrameDelay = current.InnerText;
                         }
                         else if (current.Name == "framemap")
                         {
-                            imageRes.mUniversalProp.mFrameMap = current.InnerText;
+                            imageRes.mFrameMap = current.InnerText;
                         }
                     }
                 }
@@ -381,10 +371,10 @@ namespace PVZDotNetResGen.Sexy
 
         private bool ParseSoundResource(XmlNode theElement, string groupId)
         {
-            if (ParseCommonResource(theElement, out ResBase<SoundRes>? soundRes, groupId, out string? path))
+            if (ParseCommonResource(theElement, out SoundRes? soundRes, groupId, out string? path))
             {
-                soundRes.mUniversalProp.mVolume = -1.0;
-                soundRes.mUniversalProp.mPan = 0;
+                soundRes.mVolume = -1.0;
+                soundRes.mPan = 0;
                 XmlAttributeCollection? attributes = theElement.Attributes;
                 if (attributes != null)
                 {
@@ -392,11 +382,11 @@ namespace PVZDotNetResGen.Sexy
                     {
                         if (current.Name == "volume")
                         {
-                            soundRes.mUniversalProp.mVolume = Convert.ToDouble(current.InnerText);
+                            soundRes.mVolume = Convert.ToDouble(current.InnerText);
                         }
                         if (current.Name == "pan")
                         {
-                            soundRes.mUniversalProp.mPan = Convert.ToInt32(current.InnerText);
+                            soundRes.mPan = Convert.ToInt32(current.InnerText);
                         }
                     }
                 }
@@ -415,53 +405,53 @@ namespace PVZDotNetResGen.Sexy
 
         private bool ParseFontResource(XmlNode theElement, string groupId)
         {
-            if (ParseCommonResource(theElement, out ResBase<FontRes>? fontRes, groupId, out string? path))
+            if (ParseCommonResource(theElement, out FontRes? fontRes, groupId, out string? path))
             {
                 XmlAttributeCollection? attributes = theElement.Attributes;
                 if (attributes != null)
                 {
-                    fontRes.mUniversalProp.mSize = -1;
-                    fontRes.mUniversalProp.mBold = false;
-                    fontRes.mUniversalProp.mItalic = false;
-                    fontRes.mUniversalProp.mShadow = false;
-                    fontRes.mUniversalProp.mUnderline = false;
+                    fontRes.mSize = -1;
+                    fontRes.mBold = false;
+                    fontRes.mItalic = false;
+                    fontRes.mShadow = false;
+                    fontRes.mUnderline = false;
                     foreach (XmlAttribute current in attributes)
                     {
                         if (current.Name == "tags")
                         {
-                            fontRes.mUniversalProp.mTags = current.InnerText;
+                            fontRes.mTags = current.InnerText;
                         }
                         else if (current.Name == "isDefault")
                         {
-                            fontRes.mUniversalProp.mIsDefault = true;
+                            fontRes.mIsDefault = true;
                         }
                         else if (current.Name == "truetype")
                         {
-                            fontRes.mUniversalProp.mTrueType = true;
+                            fontRes.mTrueType = true;
                         }
                         else if (current.Name == "size")
                         {
-                            fontRes.mUniversalProp.mSize = Convert.ToInt32(current.InnerText);
+                            fontRes.mSize = Convert.ToInt32(current.InnerText);
                         }
                         else if (current.Name == "bold")
                         {
-                            fontRes.mUniversalProp.mBold = true;
+                            fontRes.mBold = true;
                         }
                         else if (current.Name == "italic")
                         {
-                            fontRes.mUniversalProp.mItalic = true;
+                            fontRes.mItalic = true;
                         }
                         else if (current.Name == "shadow")
                         {
-                            fontRes.mUniversalProp.mShadow = true;
+                            fontRes.mShadow = true;
                         }
                         else if (current.Name == "underline")
                         {
-                            fontRes.mUniversalProp.mUnderline = true;
+                            fontRes.mUnderline = true;
                         }
                         else if (current.Name == "stroked")
                         {
-                            fontRes.mUniversalProp.mStroke = Convert.ToInt32(current.InnerText);
+                            fontRes.mStroke = Convert.ToInt32(current.InnerText);
                         }
                     }
                 }
@@ -487,7 +477,7 @@ namespace PVZDotNetResGen.Sexy
             return false;
         }
 
-        private bool ParseCommonResource<T>(XmlNode theElement, [MaybeNullWhen(false)] out ResBase<T> theRes, string groupId, out string? path) where T : PlatformProperties, new()
+        private bool ParseCommonResource<T>(XmlNode theElement, [NotNullWhen(true)] out T? theRes, string groupId, out string? path) where T : ResBase, new()
         {
             XmlAttributeCollection? attributes = theElement.Attributes;
             if (attributes == null)
@@ -496,11 +486,10 @@ namespace PVZDotNetResGen.Sexy
                 path = null;
                 return false;
             }
-            theRes = new ResBase<T>
+            theRes = new T
             {
                 mId = mDefaultIdPrefix + attributes["id"]?.InnerText,
                 mGroup = groupId,
-                mUniversalProp = new T(),
             };
             theRes.mGroup = groupId;
             string? pathRaw = attributes["path"]?.InnerText;
@@ -523,7 +512,7 @@ namespace PVZDotNetResGen.Sexy
             string? unloadGroup = attributes["unloadGroup"]?.InnerText;
             if (unloadGroup != null)
             {
-                theRes.mUniversalProp.mUnloadGroup = Convert.ToInt32(unloadGroup);
+                theRes.mUnloadGroup = Convert.ToInt32(unloadGroup);
             }
             return true;
         }
@@ -710,41 +699,38 @@ namespace PVZDotNetResGen.Sexy
             return s;
         }
 
-        private void DoLoadAtlas(ResBase<AtlasRes> atlasRes, string path)
+        private void DoLoadAtlas(AtlasRes atlasRes, string path)
         {
             List<PathAndAtlasInfo> pathList = new List<PathAndAtlasInfo>();
-            LoadAtlasPaths(path, atlasRes.mUniversalProp.mLanguageSpecific == true, pathList);
+            LoadAtlasPaths(path, atlasRes.mLanguageSpecific, pathList);
             foreach (PathAndAtlasInfo info in pathList)
             {
                 string atlasPath = info.DestPath;
-                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, atlasRes.mUniversalProp.mFormat ?? TextureFormat.Png));
+                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, atlasRes.mFormat));
                 if (File.Exists(imgContentPath))
                 {
                     EnsureThisFolderExist(GetUnpackPath(atlasPath));
-                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, atlasRes.mUniversalProp.mFormat ?? TextureFormat.Png))
+                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, atlasRes.mFormat))
                     {
                         RefBitmap bitmapRef = bitmap.AsRefBitmap();
-                        atlasRes.mUniversalProp.mWidth = GetCloserPOT(bitmapRef.Width);
-                        atlasRes.mUniversalProp.mHeight = GetCloserPOT(bitmapRef.Height);
-                        atlasRes.mUniversalProp.mAtlasName = info.Atlas[atlasRes.mId].Item2;
-                        foreach (SpriteItem spirits in info.Atlas[atlasRes.mId].Item1)
+                        atlasRes.mWidth = GetCloserPOT(bitmapRef.Width);
+                        atlasRes.mHeight = GetCloserPOT(bitmapRef.Height);
+                        atlasRes.mAtlasName = info.Atlas[atlasRes.mId!].Item2;
+                        foreach (SpriteItem spirits in info.Atlas[atlasRes.mId!].Item1)
                         {
                             string thisImgPath = Path.Combine(atlasPath, spirits.mId.ToLower());
                             string thisImgExPath = LoadImageExtension(thisImgPath, TextureFormat.Png);
-                            ResBase<SubImageRes> subImageRes = new ResBase<SubImageRes>
+                            SubImageRes subImageRes = new SubImageRes
                             {
                                 mGroup = atlasRes.mGroup,
                                 mId = spirits.mId,
-                                mUniversalProp = new SubImageRes
-                                {
-                                    mParent = atlasRes.mId,
-                                    mRows = spirits.mRows,
-                                    mCols = spirits.mCols,
-                                    mAnim = spirits.mAnim,
-                                    mFrameDelay = spirits.mFrameDelay,
-                                    mBeginDelay = spirits.mBeginDelay,
-                                    mEndDelay = spirits.mEndDelay,
-                                },
+                                mParent = atlasRes.mId!,
+                                mRows = spirits.mRows,
+                                mCols = spirits.mCols,
+                                mAnim = spirits.mAnim,
+                                mFrameDelay = spirits.mFrameDelay,
+                                mBeginDelay = spirits.mBeginDelay,
+                                mEndDelay = spirits.mEndDelay,
                             };
                             // 保存图片
                             using (MemoryPoolBitmap subBitmap = new MemoryPoolBitmap(spirits.mWidth, spirits.mHeight))
@@ -773,7 +759,7 @@ namespace PVZDotNetResGen.Sexy
                             AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPathForSubImage(thisImgPath), subImageRes);
                         }
                     }
-                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(atlasPath), atlasRes);
+                    AOTJson.TrySerializeListToFile<ResBase>(GetUnpackMetaPath(atlasPath), [atlasRes]);
                 }
                 else
                 {
@@ -782,24 +768,24 @@ namespace PVZDotNetResGen.Sexy
             }
         }
 
-        private void DoLoadImage(ResBase<ImageRes> imageRes, string path)
+        private void DoLoadImage(ImageRes imageRes, string path)
         {
             List<PathNoAtlasInfo> pathList = new List<PathNoAtlasInfo>();
-            LoadImagePaths(path, imageRes.mUniversalProp.mLanguageSpecific == true, pathList);
+            LoadImagePaths(path, imageRes.mLanguageSpecific == true, pathList);
             foreach (PathNoAtlasInfo info in pathList)
             {
-                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, imageRes.mUniversalProp.mFormat ?? TextureFormat.Png));
+                string imgContentPath = GetContentPath(LoadImageExtension(info.Path, imageRes.mFormat));
                 if (File.Exists(imgContentPath))
                 {
                     string imgPath = LoadImageExtension(info.DestPath, TextureFormat.Png);
                     string imgUnpackPath = GetUnpackPath(imgPath);
                     EnsureParentFolderExist(imgUnpackPath);
-                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, imageRes.mUniversalProp.mFormat ?? TextureFormat.Png))
+                    using (IDisposableBitmap bitmap = DecodeImageFromPath(imgContentPath, imageRes.mFormat))
                     {
                         bitmap.SaveAsPng(imgUnpackPath);
                     }
                     imageRes.mDiskFormat = DiskFormat.Png;
-                    AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(info.DestPath), imageRes);
+                    AOTJson.TrySerializeListToFile<ResBase>(GetUnpackMetaPath(info.DestPath), [imageRes]);
                 }
                 else
                 {
@@ -810,7 +796,6 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadReanim(string groupName, string path)
         {
-            ResBase<ReanimRes> reanimRes = new ResBase<ReanimRes> { mDiskFormat = DiskFormat.Reanim, mGroup = groupName, mId = "REANIM_" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ReanimRes() };
             string reanimPath = Path.Combine("reanim", Path.GetFileNameWithoutExtension(path));
             if (File.Exists(path))
             {
@@ -818,7 +803,6 @@ namespace PVZDotNetResGen.Sexy
                 EnsureParentFolderExist(reanimUnpackPath);
                 ReanimatorDefinition reanim = XnbReanimCoder.Shared.Decode(path);
                 XmlReanimCoder.Shared.Encode(reanim, reanimUnpackPath);
-                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(reanimPath), reanimRes);
             }
             else
             {
@@ -828,14 +812,12 @@ namespace PVZDotNetResGen.Sexy
 
         private void DoLoadParticleAndTrail(string groupName, string path)
         {
-            ResBase<ParticleRes> particleRes = new ResBase<ParticleRes> { mDiskFormat = DiskFormat.Xnb, mGroup = groupName, mId = "PARTICLE_" + Path.GetFileNameWithoutExtension(path).ToUpper(), mUniversalProp = new ParticleRes() };
             string particlePath = Path.Combine("particles", Path.GetFileName(path));
             if (File.Exists(path))
             {
                 string particleUnpackPath = GetUnpackPath(particlePath);
                 EnsureParentFolderExist(particleUnpackPath);
                 File.Copy(path, particleUnpackPath, true);
-                AOTJson.TrySerializeToFile<ResBase>(GetUnpackMetaPath(particlePath), particleRes);
             }
             else
             {
@@ -843,7 +825,20 @@ namespace PVZDotNetResGen.Sexy
             }
         }
 
-        private void DoLoadSound(ResBase<SoundRes> soundRes, string path)
+        private void DoLoadMusic(string path)
+        {
+            XnbContent content;
+            using (Stream xnbStream = File.OpenRead(path))
+            {
+                content = XnbHelper.Decode(Path.GetFileNameWithoutExtension(path), xnbStream);
+            }
+            string unpackPath = Path.ChangeExtension(GetUnpackPath(Path.Combine("music", Path.GetFileName(path))), ".wav");
+            EnsureParentFolderExist(unpackPath);
+            var snippet = FFmpeg.Conversions.FromSnippet.Convert(Path.Combine(Path.GetDirectoryName(path)!, ((Song)content.PrimaryResource).Name), unpackPath).Result;
+            IConversionResult result = snippet.Start().Result;
+        }
+
+        private void DoLoadSound(SoundRes soundRes, string path)
         {
             string soundPath = LoadXnbExtension(path);
             string soundContentPath = GetContentPath(soundPath);
@@ -858,11 +853,11 @@ namespace PVZDotNetResGen.Sexy
                 if (mExistedPath.Contains(soundUnpackPath))
                 {
                     Console.WriteLine("Repeat sound res:" + path);
-                    ResBase<SoundRes>? repeatRes = AOTJson.TryDeserializeFromFile<ResBase>(metaPath) as ResBase<SoundRes>;
+                    List<ResBase?>? repeatRes = AOTJson.TryDeserializeListFromFile<ResBase>(metaPath);
                     if (repeatRes != null)
                     {
-                        (repeatRes.mSameIds ??= []).Add(soundRes);
-                        AOTJson.TrySerializeToFile<ResBase>(metaPath, repeatRes);
+                        repeatRes.Add(soundRes);
+                        AOTJson.TrySerializeListToFile<ResBase>(metaPath, repeatRes);
                         finished = true;
                     }
                 }
@@ -872,7 +867,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (!finished)
                 {
-                    AOTJson.TrySerializeToFile<ResBase>(metaPath, soundRes);
+                    AOTJson.TrySerializeListToFile<ResBase>(metaPath, [soundRes]);
                 }
             }
             else
@@ -881,7 +876,7 @@ namespace PVZDotNetResGen.Sexy
             }
         }
 
-        private void DoLoadFont(ResBase<FontRes> fontRes, string path)
+        private void DoLoadFont(FontRes fontRes, string path)
         {
             string fontPath = RemoveContentProfix(path);
             string fontContentPath = GetContentPath(fontPath);
@@ -896,11 +891,11 @@ namespace PVZDotNetResGen.Sexy
                 if (mExistedPath.Contains(fontUnpackPath))
                 {
                     Console.WriteLine("Repeat font res:" + path);
-                    ResBase<FontRes>? repeatRes = AOTJson.TryDeserializeFromFile<ResBase>(metaPath) as ResBase<FontRes>;
+                    List<ResBase?>? repeatRes = AOTJson.TryDeserializeListFromFile<ResBase>(metaPath);
                     if (repeatRes != null)
                     {
-                        (repeatRes.mSameIds ??= []).Add(fontRes);
-                        AOTJson.TrySerializeToFile<ResBase>(metaPath, repeatRes);
+                        repeatRes.Add(fontRes);
+                        AOTJson.TrySerializeListToFile<ResBase>(metaPath, repeatRes);
                         finished = true;
                     }
                 }
@@ -910,7 +905,7 @@ namespace PVZDotNetResGen.Sexy
                 }
                 if (!finished)
                 {
-                    AOTJson.TrySerializeToFile<ResBase>(metaPath, fontRes);
+                    AOTJson.TrySerializeListToFile<ResBase>(metaPath, [fontRes]);
                 }
             }
             else

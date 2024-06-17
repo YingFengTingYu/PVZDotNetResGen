@@ -3,6 +3,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using PVZDotNetResGen.Sexy.Image;
+using PVZDotNetResGen.Sexy.Music;
 using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
 
@@ -21,6 +22,10 @@ public static class XnbCoderManager
         codersByType.Add(typeof(ReanimatorDefinition), XnbReanimCoder.Shared);
         codersByName.Add(XnbTexture2DCoder.Shared.ReaderTypeString, XnbTexture2DCoder.Shared);
         codersByType.Add(typeof(IDisposableBitmap), XnbTexture2DCoder.Shared);
+        codersByName.Add(XnbSongCoder.Shared.ReaderTypeString, XnbSongCoder.Shared);
+        codersByType.Add(typeof(Song), XnbSongCoder.Shared);
+        codersByName.Add(XnbInt32Coder.Shared.ReaderTypeString, XnbInt32Coder.Shared);
+        codersByType.Add(typeof(int), XnbInt32Coder.Shared);
         CodersByName = codersByName.ToFrozenDictionary();
         CodersByType = codersByType.ToFrozenDictionary();
     }
