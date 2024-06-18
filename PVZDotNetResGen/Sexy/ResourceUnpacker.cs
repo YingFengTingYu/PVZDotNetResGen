@@ -834,7 +834,7 @@ namespace PVZDotNetResGen.Sexy
             }
             string unpackPath = Path.ChangeExtension(GetUnpackPath(Path.Combine("music", Path.GetFileName(path))), ".wav");
             EnsureParentFolderExist(unpackPath);
-            var snippet = FFmpeg.Conversions.FromSnippet.Convert(Path.Combine(Path.GetDirectoryName(path)!, ((Song)content.PrimaryResource).Name), unpackPath).Result;
+            var snippet = FFmpeg.Conversions.FromSnippet.Convert(Path.Combine(Path.GetDirectoryName(path)!, ((Song)content.PrimaryResource).Name!), unpackPath).Result;
             IConversionResult result = snippet.Start().Result;
         }
 

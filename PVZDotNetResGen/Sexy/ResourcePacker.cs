@@ -767,7 +767,7 @@ namespace PVZDotNetResGen.Sexy
                         value = ([]);
                         mSubImages.Add(res, value);
                     }
-                    value.TryAdd(atlasName, (imageRes.mId, subImages));
+                    value.TryAdd(atlasName, (imageRes.mId!, subImages));
                 }
             }
             EnsureParentFolderExist(contentPath);
