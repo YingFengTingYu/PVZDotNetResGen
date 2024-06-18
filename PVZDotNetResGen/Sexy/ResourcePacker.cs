@@ -698,6 +698,10 @@ namespace PVZDotNetResGen.Sexy
                             buildImageInfo.mHash = GetHash(rect.id);
                             buildInfo.mSubImages.Add(buildImageInfo);
                         }
+                        if (aInGameFormat == TextureFormat.Content)
+                        {
+                            EncodeImageToPath(bitmap, Path.ChangeExtension(tempPath, ".png"), TextureFormat.Png, SurfaceFormat.Color);
+                        }
                         EncodeImageToPath(bitmap, tempPath, aInGameFormat, aSurfaceFormat);
                     }
                     buildInfo.mFormat = aInGameFormat;
