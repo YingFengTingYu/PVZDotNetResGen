@@ -2,7 +2,7 @@
 
 namespace PVZDotNetResGen.Utils.JsonHelper
 {
-    internal struct JsonShell<T>
+    public struct JsonShell<T>
         where T : class, IJsonVersionCheckable
     {
         public string? Source;
@@ -14,7 +14,7 @@ namespace PVZDotNetResGen.Utils.JsonHelper
         public T? Content;
     }
 
-    internal struct JsonShellList<T>
+    public struct JsonShellList<T>
         where T : class, IJsonVersionCheckable
     {
         public string? Source;

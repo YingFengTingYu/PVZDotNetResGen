@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace PVZDotNetResGen.Utils.JsonHelper
 {
-    internal static class AOTJson
+    public static class AOTJson
     {
         private static readonly AOTJsonSerializerContext s_Context;
 

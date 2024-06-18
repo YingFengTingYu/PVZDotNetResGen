@@ -12,13 +12,58 @@ namespace PVZDotNetResGen.Sexy.Image;
 public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
 {
     public static SurfaceFormat SurfaceFormat;
-    public static PVRTexLibCompressorQuality Quality;
+    public static TextureQuality Quality = TextureQuality.Fast;
+
+    public enum TextureQuality
+    {
+        Fast,
+        Medium,
+        High,
+    }
 
     public static XnbTexture2DCoder Shared { get; } = new XnbTexture2DCoder();
 
     public string ReaderTypeString => "Microsoft.Xna.Framework.Content.Texture2DReader";
 
-    private void SurfaceToPVRTexLibFormat(SurfaceFormat surface, out ulong format, out PVRTexLibColourSpace colourSpace)
+    private static PVRTexLibCompressorQuality TextureQualityToPVRTexLibCompressorQuality(ulong format, TextureQuality quality)
+    {
+        switch (format)
+        {
+            case (ulong)PVRTexLibPixelFormat.ETC1:
+            case (ulong)PVRTexLibPixelFormat.ETC2_RGB:
+            case (ulong)PVRTexLibPixelFormat.ETC2_RGBA:
+            case (ulong)PVRTexLibPixelFormat.ETC2_RGB_A1:
+            case (ulong)PVRTexLibPixelFormat.EAC_R11:
+            case (ulong)PVRTexLibPixelFormat.EAC_RG11:
+                return quality switch
+                {
+                    TextureQuality.Fast => PVRTexLibCompressorQuality.ETCFast,
+                    TextureQuality.Medium => PVRTexLibCompressorQuality.ETCNormal,
+                    TextureQuality.High => PVRTexLibCompressorQuality.ETCSlow,
+                    _ => PVRTexLibCompressorQuality.ETCFast,
+                };
+            case (ulong)PVRTexLibPixelFormat.PVRTCI_2bpp_RGB:
+            case (ulong)PVRTexLibPixelFormat.PVRTCI_2bpp_RGBA:
+            case (ulong)PVRTexLibPixelFormat.PVRTCI_4bpp_RGB:
+            case (ulong)PVRTexLibPixelFormat.PVRTCI_4bpp_RGBA:
+            case (ulong)PVRTexLibPixelFormat.PVRTCI_HDR_6bpp:
+            case (ulong)PVRTexLibPixelFormat.PVRTCI_HDR_8bpp:
+            case (ulong)PVRTexLibPixelFormat.PVRTCII_2bpp:
+            case (ulong)PVRTexLibPixelFormat.PVRTCII_4bpp:
+            case (ulong)PVRTexLibPixelFormat.PVRTCII_HDR_6bpp:
+            case (ulong)PVRTexLibPixelFormat.PVRTCII_HDR_8bpp:
+                return quality switch
+                {
+                    TextureQuality.Fast => PVRTexLibCompressorQuality.PVRTCFast,
+                    TextureQuality.Medium => PVRTexLibCompressorQuality.PVRTCNormal,
+                    TextureQuality.High => PVRTexLibCompressorQuality.PVRTCBest,
+                    _ => PVRTexLibCompressorQuality.PVRTCFast,
+                };
+        }
+        return 0;
+    }
+
+    private static void SurfaceToPVRTexLibFormat(SurfaceFormat surface, out ulong format, out PVRTexLibColourSpace colourSpace)
     {
         switch (surface)
         {
@@ -151,7 +196,8 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
                     {
                         if (tex.GetTextureDataSize() != 0)
                         {
-                            if (tex.Transcode(outFormat, PVRTexLibVariableType.UnsignedByteNorm, colourSpace, Quality))
+                            tex.PreMultiplyAlpha();
+                            if (tex.Transcode(outFormat, PVRTexLibVariableType.UnsignedByteNorm, colourSpace, TextureQualityToPVRTexLibCompressorQuality(outFormat, Quality)))
                             {
                                 int thisMipmapSize = (int)tex.GetTextureDataSize(0);
                                 stream.WriteInt32LE(thisMipmapSize);

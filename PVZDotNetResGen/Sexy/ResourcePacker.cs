@@ -1177,7 +1177,7 @@ namespace PVZDotNetResGen.Sexy
                 {
                     XnbContent content = new XnbContent(bitmap, 0);
                     XnbTexture2DCoder.SurfaceFormat = surface;
-                    XnbHelper.Encode(content, Path.GetFileName(path), outStream);
+                    XnbHelper.Encode(content, Path.GetFileName(path), outStream, true);
                 }
             }
             else if (format == TextureFormat.Png)
