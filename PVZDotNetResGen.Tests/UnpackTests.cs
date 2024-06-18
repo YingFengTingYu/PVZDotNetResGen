@@ -20,7 +20,6 @@ namespace PVZDotNetResGen.Tests
             
         }
 
-        [TestCase("files/AtlasResources_480x800.csf", "files/UnpackTests/CreateAtlasJson")]
         public void ExtractAtlasInfoFromCode(string inPath, string outFolder)
         {
             if (!Directory.Exists(outFolder))
@@ -41,15 +40,15 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("D:\\CSharp\\PVZCombinationRes\\unpack",
+        [TestCase("D:\\CSharp\\植物大战僵尸整合版资源\\unpack",
             "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
             "D:\\CSharp\\pvz_combination\\Lawn_PCDX\\bin\\Debug\\net6.0-windows\\Content",
-            "D:\\CSharp\\PVZCombinationRes\\cache\\pcdx",
+            "D:\\CSharp\\植物大战僵尸整合版资源\\cache\\pcdx",
             BuildPlatform.PCDX)]
-        [TestCase("D:\\CSharp\\PVZCombinationRes\\unpack",
+        [TestCase("D:\\CSharp\\植物大战僵尸整合版资源\\unpack",
             "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
             "D:\\CSharp\\pvz_combination\\Lawn_Android\\Assets\\Content",
-            "D:\\CSharp\\PVZCombinationRes\\cache\\android",
+            "D:\\CSharp\\植物大战僵尸整合版资源\\cache\\android",
             BuildPlatform.Android)]
         public void PackResources(string unpackFolder, string codeFolder, string contentFolder, string tempFolder, BuildPlatform platform)
         {
@@ -61,7 +60,6 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("D:\\Pile.xnb", "D:\\Pile2.png")]
         public void DecodeXnbTexture(string inPath, string outPath)
         {
             using (FileStream inStream = File.OpenRead(inPath))
@@ -71,7 +69,6 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("D:\\Pile.png", "D:\\Pile.xnb")]
         public void EncodeXnbTexture(string inPath, string outPath)
         {
             using (StbBitmap bitmap = new StbBitmap(inPath))
@@ -84,14 +81,12 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("D:\\Blover.xnb", "D:\\Blover.reanim")]
         public void DecodeXnbReanim(string inPath, string outPath)
         {
             ReanimatorDefinition reanim = XnbReanimCoder.Shared.Decode(inPath);
             XmlReanimCoder.Shared.Encode(reanim, outPath);
         }
 
-        [TestCase("D:\\Blover.reanim", "D:\\Blover2.xnb")]
         public void EncodeXnbReanim(string inPath, string outPath)
         {
             ReanimatorDefinition reanim = XmlReanimCoder.Shared.Decode(inPath);

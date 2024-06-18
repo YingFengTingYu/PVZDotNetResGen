@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using PVZDotNetResGen.Utils.Sure;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -29,22 +30,22 @@ namespace PVZDotNetResGen.Sexy.Reanim
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 reanim.DoScale = (ReanimScaleType)sbyte.Parse(reader.Value);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "fps")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 reanim.Fps = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "track")
@@ -75,11 +76,11 @@ namespace PVZDotNetResGen.Sexy.Reanim
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 track.Name = reader.Value;
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "t")
@@ -110,121 +111,121 @@ namespace PVZDotNetResGen.Sexy.Reanim
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.TransX = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "y")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.TransY = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "kx")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.SkewX = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "ky")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.SkewY = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "sx")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.ScaleX = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "sy")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.ScaleY = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "f")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.Frame = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "a")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.Alpha = float.Parse(reader.Value, CultureInfo.InvariantCulture);
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "i")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.Image = reader.Value;
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "font")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.Font = reader.Value;
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                         else if (reader.Name == "text")
                         {
                             if (!reader.IsEmptyElement)
                             {
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.Text);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.Text);
                                 transform.Text = reader.Value;
-                                Debug.Assert(reader.Read());
-                                Debug.Assert(reader.NodeType == XmlNodeType.EndElement);
+                                SureHelper.MakeSure(reader.Read());
+                                SureHelper.MakeSure(reader.NodeType == XmlNodeType.EndElement);
                             }
                         }
                     }

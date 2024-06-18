@@ -14,6 +14,7 @@ using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.XnbContent;
 using Xabe.FFmpeg;
 using PVZDotNetResGen.Sexy.Music;
+using PVZDotNetResGen.Utils.Sure;
 
 namespace PVZDotNetResGen.Sexy
 {
@@ -170,8 +171,8 @@ namespace PVZDotNetResGen.Sexy
                 DoLoadMusic(music);
             }
             // 处理sys资源和program资源
-            Debug.Assert(mProgramRes.Count == 0);
-            Debug.Assert(mSysFontRes.Count == 0);
+            SureHelper.MakeSure(mProgramRes.Count == 0);
+            SureHelper.MakeSure(mSysFontRes.Count == 0);
             if (mAbsentRes.Count != 0)
             {
                 foreach (string absentRes in mAbsentRes)

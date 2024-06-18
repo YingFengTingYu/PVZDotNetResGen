@@ -5,6 +5,7 @@ using PVZDotNetResGen.Sexy.Reanim;
 using PVZDotNetResGen.Utils.Graphics;
 using PVZDotNetResGen.Utils.Graphics.Bitmap;
 using PVZDotNetResGen.Utils.JsonHelper;
+using PVZDotNetResGen.Utils.Sure;
 using PVZDotNetResGen.Utils.XnbContent;
 using System;
 using System.Collections.Generic;
@@ -62,8 +63,8 @@ namespace PVZDotNetResGen.Sexy
         public string GetRecordedPathFromUnpackMetaPath(string path)
         {
             string resourcesPath = Path.Combine(mUnpackFolderPath, "resources") + "\\";
-            Debug.Assert(path.StartsWith(resourcesPath, StringComparison.CurrentCultureIgnoreCase));
-            Debug.Assert(path.EndsWith(".meta.json", StringComparison.CurrentCultureIgnoreCase));
+            SureHelper.MakeSure(path.StartsWith(resourcesPath, StringComparison.CurrentCultureIgnoreCase));
+            SureHelper.MakeSure(path.EndsWith(".meta.json", StringComparison.CurrentCultureIgnoreCase));
             return path[resourcesPath.Length..^".meta.json".Length];
         }
 
@@ -683,7 +684,7 @@ namespace PVZDotNetResGen.Sexy
                         for (int i = 0; i < ansList.Count; i++)
                         {
                             MaxRectsBinPack.BinRect rect = ansList[i];
-                            Debug.Assert(rect.id != null);
+                            SureHelper.MakeSure(rect.id != null);
                             BuildAtlasInfo.SubImageBuildInfo buildImageInfo = new BuildAtlasInfo.SubImageBuildInfo();
                             buildImageInfo.mId = Path.GetFileNameWithoutExtension(rect.id).ToUpper();
                             buildImageInfo.mX = rect.x + extrude;

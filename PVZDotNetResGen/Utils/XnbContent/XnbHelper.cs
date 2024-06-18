@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using PVZDotNetResGen.Utils.Compression;
 using PVZDotNetResGen.Utils.StreamHelper;
+using PVZDotNetResGen.Utils.Sure;
 
 namespace PVZDotNetResGen.Utils.XnbContent;
 
@@ -102,7 +103,7 @@ public static class XnbHelper
             // string readerTypeString = reader.ReadString();
             string originalReaderTypeString =
                 decompressedStream.ReadString(decompressedStream.Read7BitEncodedInt32(), System.Text.Encoding.UTF8);
-            Debug.Assert(XnbCoderManager.Get(originalReaderTypeString, out coders[i]!));
+            SureHelper.MakeSure(XnbCoderManager.Get(originalReaderTypeString, out coders[i]!));
 
             // I think the next 4 bytes refer to the "Version" of the type reader,
             // although it always seems to be zero
@@ -139,8 +140,8 @@ public static class XnbHelper
         stream.WriteUInt8((byte)'X');
         stream.WriteUInt8((byte)'N');
         stream.WriteUInt8((byte)'B');
-        
-        Debug.Assert(TargetPlatformIdentifiers.Contains(platform));
+
+        SureHelper.MakeSure(TargetPlatformIdentifiers.Contains(platform));
         stream.WriteUInt8((byte)platform); // platform
 
         stream.WriteUInt8(5); // version
@@ -159,7 +160,7 @@ public static class XnbHelper
 
             // Get all content coder type
 
-            Debug.Assert(XnbCoderManager.Get(content.PrimaryResource.GetType(), out IXnbContentCoder? mainCoder));
+            SureHelper.MakeSure(XnbCoderManager.Get(content.PrimaryResource.GetType(), out IXnbContentCoder? mainCoder));
             indexMap.Add(content.PrimaryResource.GetType(), 0);
             coders.Add(mainCoder);
 
@@ -169,7 +170,7 @@ public static class XnbHelper
                 if (shared != null)
                 {
                     Type type = shared.GetType();
-                    Debug.Assert(XnbCoderManager.Get(type, out IXnbContentCoder? coder));
+                    SureHelper.MakeSure(XnbCoderManager.Get(type, out IXnbContentCoder? coder));
                     if (!coders.Contains(coder))
                     {
                         indexMap.Add(type, coders.Count);
@@ -223,7 +224,7 @@ public static class XnbHelper
                 {
                     int resultLength = LZ4Codec.Encode32HC(memoryStream.GetBuffer(), 0, (int)memoryStream.Length,
                         outputArray, 0, maxLength);
-                    Debug.Assert(resultLength > 0);
+                    SureHelper.MakeSure(resultLength > 0);
                     stream.WriteInt32LE((int)stream.Position + resultLength + 8);
                     stream.WriteInt32LE((int)memoryStream.Length);
                     stream.Write(outputArray, 0, resultLength);

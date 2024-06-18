@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
 using PVZDotNetResGen.Utils.JsonHelper;
+using PVZDotNetResGen.Utils.Sure;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -78,7 +79,7 @@ namespace PVZDotNetResGen.Sexy.Atlas
                                                         {
                                                             var arguments = objectCreation.ArgumentList.Arguments;
                                                             string id = arguments[0].ToString();
-                                                            Debug.Assert(id.StartsWith("AtlasResources."));
+                                                            SureHelper.MakeSure(id.StartsWith("AtlasResources."));
                                                             id = id["AtlasResources.".Length..];
                                                             SpriteItem item = new SpriteItem
                                                             {

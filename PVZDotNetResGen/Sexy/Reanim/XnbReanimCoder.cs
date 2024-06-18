@@ -1,4 +1,5 @@
 ﻿using PVZDotNetResGen.Utils.StreamHelper;
+using PVZDotNetResGen.Utils.Sure;
 using PVZDotNetResGen.Utils.XnbContent;
 using System;
 using System.Collections.Generic;
@@ -56,7 +57,7 @@ public class XnbReanimCoder : IReanimCoder, IXnbContentCoder<ReanimatorDefinitio
         ReanimOptimisationType reanimOptimisationType = (ReanimOptimisationType)input.ReadUInt8();
         if (reanimOptimisationType == ReanimOptimisationType.CopyPrevious)
         {
-            Debug.Assert(previous != null);
+            SureHelper.MakeSure(previous != null);
             transform.TransX = previous.TransX;
             transform.TransY = previous.TransY;
             transform.ScaleX = previous.ScaleX;
