@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Xml;
 using Xabe.FFmpeg;
@@ -139,10 +138,10 @@ namespace PVZDotNetResGen.Sexy
             {
                 ParseReanimResource(Path.ChangeExtension(reanim, ".meta.json"));
             }
-            string[] musics = Directory.GetFiles(Path.Combine(mUnpackFolderPath, "resources", "music"), "*.wav", SearchOption.TopDirectoryOnly);
+            string[] musics = Directory.GetFiles(Path.Combine(mUnpackFolderPath, "resources", "music"), "*", SearchOption.TopDirectoryOnly);
             foreach (var music in musics)
             {
-                ParseMusicResource(Path.ChangeExtension(music, ".meta.json"));
+                ParseMusicResource(music);
             }
             CreateCodeTo();
             foreach (var pair in mSubImages)
@@ -855,9 +854,9 @@ namespace PVZDotNetResGen.Sexy
             return true;
         }
 
-        private bool ParseMusicResource(string metaPath)
+        private bool ParseMusicResource(string unpackPath)
         {
-            string path = GetRecordedPathFromUnpackMetaPath(metaPath);
+            string path = GetRecordedPathFromUnpackMetaPath(Path.ChangeExtension(unpackPath, ".meta.json"));
             string tempPath = GetTempPath(path) + ".xnb";
             string destExtension = mPlatform switch
             {
@@ -869,14 +868,13 @@ namespace PVZDotNetResGen.Sexy
             if (true)
             {
                 string tempMetaPath = GetTempMetaPath(path);
-                string unpackPath = GetUnpackPath(path) + ".wav";
                 bool rebuild = false;
                 BuildInfo? buildInfo = AOTJson.TryDeserializeFromFile<BuildInfo>(tempMetaPath);
                 if (buildInfo == null || !File.Exists(tempPath) || !File.Exists(tempPathMusic))
                 {
                     rebuild = true;
                 }
-                else if (buildInfo.mDiskFormat != DiskFormat.Wav)
+                else if (buildInfo.mDiskFormat != DiskFormat.None)
                 {
                     rebuild = true;
                 }
@@ -891,10 +889,11 @@ namespace PVZDotNetResGen.Sexy
                 {
                     EnsureParentFolderExist(tempPath);
 
-                    int length = WavHelper.GetWavFileDuration(unpackPath).Milliseconds;
+                    int length = -1;
 
                     var snippet = FFmpeg.Conversions.FromSnippet.Convert(unpackPath, tempPathMusic).Result;
                     IConversionResult result = snippet.Start().Result;
+
                     XnbContent songContent = new XnbContent(new Song { Name = Path.GetFileName(tempPathMusic), Length = length }, 1);
                     songContent.SharedResources[0] = 1;
 
@@ -904,7 +903,7 @@ namespace PVZDotNetResGen.Sexy
                     }
 
                     buildInfo = new BuildInfo();
-                    buildInfo.mDiskFormat = DiskFormat.Wav;
+                    buildInfo.mDiskFormat = DiskFormat.None;
                     buildInfo.mHash = GetHash(unpackPath);
                     AOTJson.TrySerializeToFile(tempMetaPath, buildInfo);
                 }
