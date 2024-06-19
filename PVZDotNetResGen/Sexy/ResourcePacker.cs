@@ -144,6 +144,18 @@ namespace PVZDotNetResGen.Sexy
             {
                 ParseMusicResource(music);
             }
+            string[] particles = Directory.GetFiles(Path.Combine(mUnpackFolderPath, "resources", "particles"), "*", SearchOption.TopDirectoryOnly);
+            foreach (var particle in particles)
+            {
+                string destPath = GetContentPath(Path.Combine("particles", Path.GetFileName(particle)));
+                EnsureParentFolderExist(destPath);
+                File.Copy(particle, destPath, true);
+            }
+            string[] lawnstrings = Directory.GetFiles(Path.Combine(mUnpackFolderPath, "resources"), "LawnStrings_*.txt", SearchOption.TopDirectoryOnly);
+            foreach (var lawnstring in lawnstrings)
+            {
+                File.Copy(lawnstring, GetContentPath(Path.GetFileName(lawnstring)), true);
+            }
             CreateCodeTo();
             foreach (var pair in mSubImages)
             {

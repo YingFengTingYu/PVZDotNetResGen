@@ -9,10 +9,6 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<RdXmlFile Include="rd.xml" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
 		<PackageReference Include="Xabe.FFmpeg.Downloader" Version="5.2.6" />
 	</ItemGroup>
