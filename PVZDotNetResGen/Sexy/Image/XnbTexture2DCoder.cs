@@ -2,10 +2,10 @@
 using PVZDotNetResGen.Utils.MemoryHelper;
 using PVZDotNetResGen.Utils.StreamHelper;
 using PVZDotNetResGen.Utils.XnbContent;
-using PVRTexLib;
 using System.IO;
 using System;
 using PVZDotNetResGen.Utils.Graphics;
+using PVRTexLibNET;
 
 namespace PVZDotNetResGen.Sexy.Image;
 
@@ -25,120 +25,108 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
 
     public string ReaderTypeString => "Microsoft.Xna.Framework.Content.Texture2DReader";
 
-    private static PVRTexLibCompressorQuality TextureQualityToPVRTexLibCompressorQuality(ulong format, TextureQuality quality)
+    private static CompressorQuality TextureQualityToPVRTexLibCompressorQuality(PixelFormat format, TextureQuality quality)
     {
         switch (format)
         {
-            case (ulong)PVRTexLibPixelFormat.ETC1:
-            case (ulong)PVRTexLibPixelFormat.ETC2_RGB:
-            case (ulong)PVRTexLibPixelFormat.ETC2_RGBA:
-            case (ulong)PVRTexLibPixelFormat.ETC2_RGB_A1:
-            case (ulong)PVRTexLibPixelFormat.EAC_R11:
-            case (ulong)PVRTexLibPixelFormat.EAC_RG11:
+            case PixelFormat.ETC1:
+            case PixelFormat.ETC2_RGB:
+            case PixelFormat.ETC2_RGBA:
+            case PixelFormat.ETC2_RGB_A1:
+            case PixelFormat.EAC_R11:
+            case PixelFormat.EAC_RG11:
                 return quality switch
                 {
-                    TextureQuality.Fast => PVRTexLibCompressorQuality.ETCFast,
-                    TextureQuality.Medium => PVRTexLibCompressorQuality.ETCNormal,
-                    TextureQuality.High => PVRTexLibCompressorQuality.ETCSlow,
-                    _ => PVRTexLibCompressorQuality.ETCFast,
+                    TextureQuality.Fast => CompressorQuality.ETCFastPerceptual,
+                    TextureQuality.Medium => CompressorQuality.ETCMediumPerceptual,
+                    TextureQuality.High => CompressorQuality.ETCSlowPerceptual,
+                    _ => CompressorQuality.ETCFastPerceptual,
                 };
-            case (ulong)PVRTexLibPixelFormat.PVRTCI_2bpp_RGB:
-            case (ulong)PVRTexLibPixelFormat.PVRTCI_2bpp_RGBA:
-            case (ulong)PVRTexLibPixelFormat.PVRTCI_4bpp_RGB:
-            case (ulong)PVRTexLibPixelFormat.PVRTCI_4bpp_RGBA:
-            case (ulong)PVRTexLibPixelFormat.PVRTCI_HDR_6bpp:
-            case (ulong)PVRTexLibPixelFormat.PVRTCI_HDR_8bpp:
-            case (ulong)PVRTexLibPixelFormat.PVRTCII_2bpp:
-            case (ulong)PVRTexLibPixelFormat.PVRTCII_4bpp:
-            case (ulong)PVRTexLibPixelFormat.PVRTCII_HDR_6bpp:
-            case (ulong)PVRTexLibPixelFormat.PVRTCII_HDR_8bpp:
+            case PixelFormat.PVRTCI_2bpp_RGB:
+            case PixelFormat.PVRTCI_2bpp_RGBA:
+            case PixelFormat.PVRTCI_4bpp_RGB:
+            case PixelFormat.PVRTCI_4bpp_RGBA:
+            case PixelFormat.PVRTCII_2bpp:
+            case PixelFormat.PVRTCII_4bpp:
                 return quality switch
                 {
-                    TextureQuality.Fast => PVRTexLibCompressorQuality.PVRTCFast,
-                    TextureQuality.Medium => PVRTexLibCompressorQuality.PVRTCNormal,
-                    TextureQuality.High => PVRTexLibCompressorQuality.PVRTCBest,
-                    _ => PVRTexLibCompressorQuality.PVRTCFast,
+                    TextureQuality.Fast => CompressorQuality.PVRTCFast,
+                    TextureQuality.Medium => CompressorQuality.PVRTCNormal,
+                    TextureQuality.High => CompressorQuality.PVRTCBest,
+                    _ => CompressorQuality.PVRTCFast,
                 };
         }
         return 0;
     }
 
-    private static void SurfaceToPVRTexLibFormat(SurfaceFormat surface, out ulong format, out PVRTexLibColourSpace colourSpace)
+    private static void SurfaceToPVRTexLibFormat(SurfaceFormat surface, out PixelFormat format, out ColourSpace colourSpace)
     {
         switch (surface)
         {
             case SurfaceFormat.Color:
-                format = PVRDefine.PVRTGENPIXELID4('r', 'g', 'b', 'a', 8, 8, 8, 8);
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.RGBA8888;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Bgr565:
-                format = PVRDefine.PVRTGENPIXELID3('r', 'g', 'b', 5, 6, 5);
-                colourSpace = PVRTexLibColourSpace.Linear;
-                break;
-            case SurfaceFormat.Bgra5551:
-                format = PVRDefine.PVRTGENPIXELID4('a', 'r', 'g', 'b', 1, 5, 5, 5);
-                colourSpace = PVRTexLibColourSpace.Linear;
-                break;
-            case SurfaceFormat.Bgra4444:
-                colourSpace = PVRTexLibColourSpace.Linear;
-                format = PVRDefine.PVRTGENPIXELID4('a', 'r', 'g', 'b', 4, 4, 4, 4);
+                format = PixelFormat.RGB565;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Dxt1:
             case SurfaceFormat.Dxt1a:
-                format = (ulong)PVRTexLibPixelFormat.DXT1;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.DXT1;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Dxt1SRgb:
-                format = (ulong)PVRTexLibPixelFormat.DXT1;
-                colourSpace = PVRTexLibColourSpace.sRGB;
+                format = PixelFormat.DXT1;
+                colourSpace = ColourSpace.sRGB;
                 break;
             case SurfaceFormat.Dxt3:
-                format = (ulong)PVRTexLibPixelFormat.DXT3;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.DXT3;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Dxt3SRgb:
-                format = (ulong)PVRTexLibPixelFormat.DXT3;
-                colourSpace = PVRTexLibColourSpace.sRGB;
+                format = PixelFormat.DXT3;
+                colourSpace = ColourSpace.sRGB;
                 break;
             case SurfaceFormat.Dxt5:
-                format = (ulong)PVRTexLibPixelFormat.DXT5;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.DXT5;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Dxt5SRgb:
-                format = (ulong)PVRTexLibPixelFormat.DXT5;
-                colourSpace = PVRTexLibColourSpace.sRGB;
+                format = PixelFormat.DXT5;
+                colourSpace = ColourSpace.sRGB;
                 break;
             case SurfaceFormat.RgbEtc1:
-                format = (ulong)PVRTexLibPixelFormat.ETC1;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.ETC1;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Rgb8Etc2:
-                format = (ulong)PVRTexLibPixelFormat.ETC2_RGB;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.ETC2_RGB;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Rgb8A1Etc2:
-                format = (ulong)PVRTexLibPixelFormat.ETC2_RGB_A1;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.ETC2_RGB_A1;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.Rgba8Etc2:
-                format = (ulong)PVRTexLibPixelFormat.ETC2_RGBA;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.ETC2_RGBA;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.RgbPvrtc2Bpp:
-                format = (ulong)PVRTexLibPixelFormat.PVRTCI_2bpp_RGB;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.PVRTCI_2bpp_RGB;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.RgbPvrtc4Bpp:
-                format = (ulong)PVRTexLibPixelFormat.PVRTCI_4bpp_RGB;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.PVRTCI_4bpp_RGB;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.RgbaPvrtc2Bpp:
-                format = (ulong)PVRTexLibPixelFormat.PVRTCI_2bpp_RGBA;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.PVRTCI_2bpp_RGBA;
+                colourSpace = ColourSpace.lRGB;
                 break;
             case SurfaceFormat.RgbaPvrtc4Bpp:
-                format = (ulong)PVRTexLibPixelFormat.PVRTCI_4bpp_RGBA;
-                colourSpace = PVRTexLibColourSpace.Linear;
+                format = PixelFormat.PVRTCI_4bpp_RGBA;
+                colourSpace = ColourSpace.lRGB;
                 break;
             default:
                 throw new Exception("unsupported surface format:" + surface);
@@ -147,33 +135,35 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
 
     public object ReadContent(Stream stream, string originalAssetName, byte version)
     {
-        var surfaceFormat = (SurfaceFormat)stream.ReadInt32LE();
-        int width = stream.ReadInt32LE();
-        int height = stream.ReadInt32LE();
-        /*int levelCount = */
-        stream.ReadInt32LE();
-        int thisMipmapSize = stream.ReadInt32LE();
-        // 使用PVRTexLib解码
-        SurfaceToPVRTexLibFormat(surfaceFormat, out ulong inFormat, out PVRTexLibColourSpace colourSpace);
-        unsafe
-        {
-            using (NativeMemoryOwner memoryOwner = new NativeMemoryOwner((uint)thisMipmapSize))
-            {
-                stream.Read(memoryOwner.AsSpan());
-                using (PVRTextureHeader header = new PVRTextureHeader(inFormat, (uint)width, (uint)height, colourSpace: colourSpace))
-                {
-                    using (PVRTexture texture = new PVRTexture(header, memoryOwner.Pointer))
-                    {
-                        ulong rgba8888 = PVRDefine.PVRTGENPIXELID4('r', 'g', 'b', 'a', 8, 8, 8, 8);
-                        if (texture.GetTexturePixelFormat() != rgba8888)
-                        {
-                            texture.Transcode(rgba8888, PVRTexLibVariableType.UnsignedByteNorm, PVRTexLibColourSpace.Linear);
-                        }
-                        return new PVRTexLibBitmap(new PVRTexture(in texture));
-                    }
-                }
-            }
-        }
+        //var surfaceFormat = (SurfaceFormat)stream.ReadInt32LE();
+        //int width = stream.ReadInt32LE();
+        //int height = stream.ReadInt32LE();
+        ///*int levelCount = */
+        //stream.ReadInt32LE();
+        //int thisMipmapSize = stream.ReadInt32LE();
+        //// 使用PVRTexLib解码
+        //SurfaceToPVRTexLibFormat(surfaceFormat, out PixelFormat inFormat, out ColourSpace colourSpace);
+        //unsafe
+        //{
+        //    using (NativeMemoryOwner memoryOwner = new NativeMemoryOwner((uint)thisMipmapSize))
+        //    {
+        //        stream.Read(memoryOwner.AsSpan());
+        //        using (PVRTextureHeader header = new PVRTextureHeader(inFormat, (uint)width, (uint)height, colourSpace: colourSpace))
+        //        {
+        //            using (PVRTexture texture = new PVRTexture(header, memoryOwner.Pointer))
+        //            {
+        //                PixelFormat
+        //                PixelFormat rgba8888 = PVRDefine.PVRTGENPIXELID4('r', 'g', 'b', 'a', 8, 8, 8, 8);
+        //                if (texture.GetTexturePixelFormat() != rgba8888)
+        //                {
+        //                    texture.Transcode(rgba8888, VariableType.UnsignedByteNorm, ColourSpace.lRGB);
+        //                }
+        //                return new PVRTexLibBitmap(new PVRTexture(in texture));
+        //            }
+        //        }
+        //    }
+        //}
+        throw new NotImplementedException();
     }
 
     public void WriteContent(object content, Stream stream, string originalAssetName, byte version)
@@ -185,27 +175,38 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
         stream.WriteInt32LE(bitmap.Height);
         stream.WriteInt32LE(1); // levelCount
         // 使用PVRTexLib编码
-        SurfaceToPVRTexLibFormat(surfaceFormat, out ulong outFormat, out PVRTexLibColourSpace colourSpace);
-        using (PVRTextureHeader header = new PVRTextureHeader(PVRDefine.PVRTGENPIXELID4('r', 'g', 'b', 'a', 8, 8, 8, 8), (uint)bitmap.Width, (uint)bitmap.Height, colourSpace: PVRTexLibColourSpace.Linear, channelType: PVRTexLibVariableType.UnsignedByteNorm))
+        SurfaceToPVRTexLibFormat(surfaceFormat, out PixelFormat outFormat, out ColourSpace colourSpace);
+        unsafe
         {
-            unsafe
+            fixed (YFColor* ptr = bitmap.AsSpan())
             {
-                fixed (YFColor* ptr = bitmap.AsSpan())
+                YFColor* colorPtr = ptr;
+                for (int i = 0; i < bitmap.Area; i++)
                 {
-                    using (PVRTexture tex = new PVRTexture(header, ptr))
+                    colorPtr->mRed = (byte)(colorPtr->mRed * colorPtr->mAlpha / 255);
+                    colorPtr->mGreen = (byte)(colorPtr->mGreen * colorPtr->mAlpha / 255);
+                    colorPtr->mBlue = (byte)(colorPtr->mBlue * colorPtr->mAlpha / 255);
+                    colorPtr++;
+                }
+                nint tex = PVRTexture.CreateTexture((nint)ptr, (uint)bitmap.Width, (uint)bitmap.Height, 1, PixelFormat.RGBA8888, false, VariableType.UnsignedByte, ColourSpace.lRGB);
+                {
+                    if (PVRTexture.GetTextureDataSize(tex) != 0)
                     {
-                        if (tex.GetTextureDataSize() != 0)
+                        // 预乘
+                        if (PVRTexture.Transcode(tex, outFormat, VariableType.UnsignedByte, colourSpace, TextureQualityToPVRTexLibCompressorQuality(outFormat, Quality)))
                         {
-                            tex.PreMultiplyAlpha();
-                            if (tex.Transcode(outFormat, PVRTexLibVariableType.UnsignedByteNorm, colourSpace, TextureQualityToPVRTexLibCompressorQuality(outFormat, Quality)))
+                            int thisMipmapSize = (int)PVRTexture.GetTextureDataSize(tex, 0);
+                            stream.WriteInt32LE(thisMipmapSize);
+                            byte[] arr = new byte[thisMipmapSize];
+                            fixed (byte* arrPtr = arr)
                             {
-                                int thisMipmapSize = (int)tex.GetTextureDataSize(0);
-                                stream.WriteInt32LE(thisMipmapSize);
-                                stream.Write(new ReadOnlySpan<byte>(tex.GetTextureDataPointer(0), thisMipmapSize));
+                                PVRTexture.GetTextureData(tex, (nint)arrPtr, (uint)thisMipmapSize, 0);
                             }
+                            stream.Write(arr);
                         }
                     }
                 }
+                PVRTexture.DestroyTexture(tex);
             }
         }
     }

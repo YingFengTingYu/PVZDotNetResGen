@@ -40,15 +40,15 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
-        [TestCase("D:\\CSharp\\植物大战僵尸整合版资源\\unpack",
+        [TestCase("D:\\CSharp\\pvz_combination_resources\\unpack",
             "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
             "D:\\CSharp\\pvz_combination\\Lawn_PCDX\\bin\\Debug\\net6.0-windows\\Content",
-            "D:\\CSharp\\植物大战僵尸整合版资源\\cache\\pcdx",
+            "D:\\CSharp\\pvz_combination_resources\\cache\\pcdx",
             BuildPlatform.PCDX)]
-        [TestCase("D:\\CSharp\\植物大战僵尸整合版资源\\unpack",
+        [TestCase("D:\\CSharp\\pvz_combination_resources\\unpack",
             "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
             "D:\\CSharp\\pvz_combination\\Lawn_Android\\Assets\\Content",
-            "D:\\CSharp\\植物大战僵尸整合版资源\\cache\\android",
+            "D:\\CSharp\\pvz_combination_resources\\cache\\android",
             BuildPlatform.Android)]
         public void PackResources(string unpackFolder, string codeFolder, string contentFolder, string tempFolder, BuildPlatform platform)
         {
