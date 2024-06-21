@@ -1,5 +1,4 @@
 ﻿using PVZDotNetResGen.Utils.Graphics.Bitmap;
-using PVZDotNetResGen.Utils.MemoryHelper;
 using PVZDotNetResGen.Utils.StreamHelper;
 using PVZDotNetResGen.Utils.XnbContent;
 using System.IO;
@@ -71,6 +70,14 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
                 format = PixelFormat.RGB565;
                 colourSpace = ColourSpace.lRGB;
                 break;
+            case SurfaceFormat.Bgra5551:
+                format = PVRTGENPIXELID4('a', 'r', 'g', 'b', 1, 5, 5, 5);
+                colourSpace = ColourSpace.lRGB;
+                break;
+            case SurfaceFormat.Bgra4444:
+                format = PVRTGENPIXELID4('a', 'r', 'g', 'b', 4, 4, 4, 4);
+                colourSpace = ColourSpace.lRGB;
+                break;
             case SurfaceFormat.Dxt1:
             case SurfaceFormat.Dxt1a:
                 format = PixelFormat.DXT1;
@@ -133,37 +140,75 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
         }
     }
 
+    public static PixelFormat PVRTGENPIXELID4(ulong C1Name, ulong C2Name, ulong C3Name, ulong C4Name, ulong C1Bits, ulong C2Bits, ulong C3Bits, ulong C4Bits)
+    {
+        return (PixelFormat)(C1Name + (C2Name << 8) + (C3Name << 16) + (C4Name << 24) + (C1Bits << 32) + (C2Bits << 40) + (C3Bits << 48) + (C4Bits << 56));
+    }
+
+    public static PixelFormat PVRTGENPIXELID3(ulong C1Name, ulong C2Name, ulong C3Name, ulong C1Bits, ulong C2Bits, ulong C3Bits)
+    {
+        return PVRTGENPIXELID4(C1Name, C2Name, C3Name, 0uL, C1Bits, C2Bits, C3Bits, 0uL);
+    }
+
+    public static PixelFormat PVRTGENPIXELID2(ulong C1Name, ulong C2Name, ulong C1Bits, ulong C2Bits)
+    {
+        return PVRTGENPIXELID4(C1Name, C2Name, 0uL, 0uL, C1Bits, C2Bits, 0uL, 0uL);
+    }
+
+    public static PixelFormat PVRTGENPIXELID1(ulong C1Name, ulong C1Bits)
+    {
+        return PVRTGENPIXELID4(C1Name, 0uL, 0uL, 0uL, C1Bits, 0uL, 0uL, 0uL);
+    }
+
     public object ReadContent(Stream stream, string originalAssetName, byte version)
     {
-        //var surfaceFormat = (SurfaceFormat)stream.ReadInt32LE();
-        //int width = stream.ReadInt32LE();
-        //int height = stream.ReadInt32LE();
-        ///*int levelCount = */
-        //stream.ReadInt32LE();
-        //int thisMipmapSize = stream.ReadInt32LE();
-        //// 使用PVRTexLib解码
-        //SurfaceToPVRTexLibFormat(surfaceFormat, out PixelFormat inFormat, out ColourSpace colourSpace);
-        //unsafe
-        //{
-        //    using (NativeMemoryOwner memoryOwner = new NativeMemoryOwner((uint)thisMipmapSize))
-        //    {
-        //        stream.Read(memoryOwner.AsSpan());
-        //        using (PVRTextureHeader header = new PVRTextureHeader(inFormat, (uint)width, (uint)height, colourSpace: colourSpace))
-        //        {
-        //            using (PVRTexture texture = new PVRTexture(header, memoryOwner.Pointer))
-        //            {
-        //                PixelFormat
-        //                PixelFormat rgba8888 = PVRDefine.PVRTGENPIXELID4('r', 'g', 'b', 'a', 8, 8, 8, 8);
-        //                if (texture.GetTexturePixelFormat() != rgba8888)
-        //                {
-        //                    texture.Transcode(rgba8888, VariableType.UnsignedByteNorm, ColourSpace.lRGB);
-        //                }
-        //                return new PVRTexLibBitmap(new PVRTexture(in texture));
-        //            }
-        //        }
-        //    }
-        //}
-        throw new NotImplementedException();
+        var surfaceFormat = (SurfaceFormat)stream.ReadInt32LE();
+        int width = stream.ReadInt32LE();
+        int height = stream.ReadInt32LE();
+        /*int levelCount = */
+        stream.ReadInt32LE();
+        int thisMipmapSize = stream.ReadInt32LE();
+        // 使用PVRTexLib解码
+        SurfaceToPVRTexLibFormat(surfaceFormat, out PixelFormat inFormat, out ColourSpace colourSpace);
+        unsafe
+        {
+            byte[] textureData = new byte[thisMipmapSize];
+            stream.ReadExactly(textureData, 0, thisMipmapSize);
+            fixed (byte* textureDataPtr = textureData)
+            {
+                nint tex = 0;
+                try
+                {
+                    tex = PVRTexture.CreateTexture((nint)textureDataPtr, (uint)width, (uint)height, 1, inFormat, false, VariableType.UnsignedByte, colourSpace);
+                    PVRTexture.Transcode(tex, PixelFormat.RGBA8888, VariableType.UnsignedByte, ColourSpace.lRGB);
+                    uint outSize = PVRTexture.GetTextureDataSize(tex, 0);
+                    MemoryPoolBitmap memBitmap = new MemoryPoolBitmap(width, height);
+                    fixed (YFColor* ptr = memBitmap.AsSpan())
+                    {
+                        PVRTexture.GetTextureData(tex, (nint)ptr, outSize, 0);
+                        YFColor* colorPtr = ptr;
+                        for (int i = 0; i < memBitmap.Area; i++)
+                        {
+                            if (colorPtr->mAlpha != 0)
+                            {
+                                colorPtr->mRed = (byte)Math.Clamp(colorPtr->mRed * 255 / colorPtr->mAlpha, 0, 255);
+                                colorPtr->mGreen = (byte)Math.Clamp(colorPtr->mGreen * 255 / colorPtr->mAlpha, 0, 255);
+                                colorPtr->mBlue = (byte)Math.Clamp(colorPtr->mBlue * 255 / colorPtr->mAlpha, 0, 255);
+                            }
+                            colorPtr++;
+                        }
+                    }
+                    return memBitmap;
+                }
+                finally
+                {
+                    if (tex != 0)
+                    {
+                        PVRTexture.DestroyTexture(tex);
+                    }
+                }
+            }
+        }
     }
 
     public void WriteContent(object content, Stream stream, string originalAssetName, byte version)
@@ -188,25 +233,34 @@ public class XnbTexture2DCoder : IXnbContentCoder<IDisposableBitmap>
                     colorPtr->mBlue = (byte)(colorPtr->mBlue * colorPtr->mAlpha / 255);
                     colorPtr++;
                 }
-                nint tex = PVRTexture.CreateTexture((nint)ptr, (uint)bitmap.Width, (uint)bitmap.Height, 1, PixelFormat.RGBA8888, false, VariableType.UnsignedByte, ColourSpace.lRGB);
+                nint tex = 0;
+                try
                 {
-                    if (PVRTexture.GetTextureDataSize(tex) != 0)
+                    tex = PVRTexture.CreateTexture((nint)ptr, (uint)bitmap.Width, (uint)bitmap.Height, 1, PixelFormat.RGBA8888, false, VariableType.UnsignedByte, ColourSpace.lRGB);
                     {
-                        // 预乘
-                        if (PVRTexture.Transcode(tex, outFormat, VariableType.UnsignedByte, colourSpace, TextureQualityToPVRTexLibCompressorQuality(outFormat, Quality)))
+                        if (PVRTexture.GetTextureDataSize(tex) != 0)
                         {
-                            int thisMipmapSize = (int)PVRTexture.GetTextureDataSize(tex, 0);
-                            stream.WriteInt32LE(thisMipmapSize);
-                            byte[] arr = new byte[thisMipmapSize];
-                            fixed (byte* arrPtr = arr)
+                            if (PVRTexture.Transcode(tex, outFormat, VariableType.UnsignedByte, colourSpace, TextureQualityToPVRTexLibCompressorQuality(outFormat, Quality)))
                             {
-                                PVRTexture.GetTextureData(tex, (nint)arrPtr, (uint)thisMipmapSize, 0);
+                                int thisMipmapSize = (int)PVRTexture.GetTextureDataSize(tex, 0);
+                                stream.WriteInt32LE(thisMipmapSize);
+                                byte[] arr = new byte[thisMipmapSize];
+                                fixed (byte* arrPtr = arr)
+                                {
+                                    PVRTexture.GetTextureData(tex, (nint)arrPtr, (uint)thisMipmapSize, 0);
+                                }
+                                stream.Write(arr);
                             }
-                            stream.Write(arr);
                         }
                     }
                 }
-                PVRTexture.DestroyTexture(tex);
+                finally
+                {
+                    if (tex != 0)
+                    {
+                        PVRTexture.DestroyTexture(tex);
+                    }
+                }
             }
         }
     }

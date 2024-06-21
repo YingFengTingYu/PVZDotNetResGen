@@ -60,6 +60,7 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
+        [TestCase("D:\\test.xnb", "D:\\test2.png")]
         public void DecodeXnbTexture(string inPath, string outPath)
         {
             using (FileStream inStream = File.OpenRead(inPath))
@@ -69,6 +70,7 @@ namespace PVZDotNetResGen.Tests
             }
         }
 
+        [TestCase("D:\\test.png", "D:\\test.xnb")]
         public void EncodeXnbTexture(string inPath, string outPath)
         {
             using (StbBitmap bitmap = new StbBitmap(inPath))
