@@ -156,6 +156,17 @@ namespace PVZDotNetResGen.Sexy
             {
                 File.Copy(lawnstring, GetContentPath(Path.GetFileName(lawnstring)), true);
             }
+            string arialPath = Path.Combine(mUnpackFolderPath, "resources", "fonts", "Arial.xnb");
+            if (File.Exists(arialPath))
+            {
+                string destPath = GetContentPath(Path.Combine("fonts", "Arial.xnb"));
+                EnsureParentFolderExist(destPath);
+                File.Copy(arialPath, destPath, true);
+            }
+            else
+            {
+                Console.WriteLine("Arial.xnb is not exist! The game may crash. ");
+            }
             CreateCodeTo();
             foreach (var pair in mSubImages)
             {

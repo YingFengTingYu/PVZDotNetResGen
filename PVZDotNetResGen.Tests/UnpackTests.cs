@@ -42,7 +42,7 @@ namespace PVZDotNetResGen.Tests
 
         [TestCase("D:\\CSharp\\pvz_combination_resources\\unpack",
             "D:\\CSharp\\pvz_combination\\Lawn_Shared\\Sexy\\Resource",
-            "D:\\CSharp\\pvz_combination\\Lawn_PCDX\\bin\\Debug\\net6.0-windows\\Content",
+            "D:\\CSharp\\pvz_combination\\Lawn_PCDX\\bin\\Debug\\net8.0-windows\\Content",
             "D:\\CSharp\\pvz_combination_resources\\cache\\pcdx",
             BuildPlatform.PCDX)]
         [TestCase("D:\\CSharp\\pvz_combination_resources\\unpack",
