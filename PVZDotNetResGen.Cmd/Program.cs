@@ -76,6 +76,7 @@ namespace PVZDotNetResGen.Cmd
             packCommand.AddOption(unpackOption);
             packCommand.AddOption(sourceOption);
             packCommand.AddOption(tempOption);
+            packCommand.AddOption(platformOption);
 
             packCommand.SetHandler((DirectoryInfo? content, DirectoryInfo? unpack, DirectoryInfo? source, DirectoryInfo? temp, string? platformString) =>
             {
