@@ -886,6 +886,7 @@ namespace PVZDotNetResGen.Sexy
             {
                 BuildPlatform.PCDX => ".wma",
                 BuildPlatform.WebGL => ".mp3",
+                BuildPlatform.IOS => ".m4a",
                 _ => ".ogg"
             };
             string tempPathMusic = GetTempPath(path) + destExtension;
