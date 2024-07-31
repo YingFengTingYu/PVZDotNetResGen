@@ -880,6 +880,8 @@ namespace PVZDotNetResGen.Sexy
 
         private bool ParseMusicResource(string unpackPath)
         {
+            TagLib.File tfile = TagLib.File.Create(unpackPath);
+            int length = (int)tfile.Properties.Duration.TotalMilliseconds;
             string path = GetRecordedPathFromUnpackMetaPath(Path.ChangeExtension(unpackPath, ".meta.json"));
             string tempPath = GetTempPath(path) + ".xnb";
             string destExtension = mPlatform switch
@@ -913,9 +915,6 @@ namespace PVZDotNetResGen.Sexy
                 if (rebuild)
                 {
                     EnsureParentFolderExist(tempPath);
-
-                    int length = -1;
-
                     var snippet = FFmpeg.Conversions.FromSnippet.Convert(unpackPath, tempPathMusic).Result;
                     IConversionResult result = snippet.Start().Result;
 
