@@ -43,7 +43,7 @@ namespace PVZDotNetResGen.Cmd
 
             platformOption.AddAlias("-p");
 
-            var rootCommand = new RootCommand("PVZDotNetResGen v1.0 author: YingFengTingTu");
+            var rootCommand = new RootCommand("PVZDotNetResGen v1.0 author: YingFengTingYu");
 
             var unpackCommand = new Command("unpack", "Unpack content folder");
 
