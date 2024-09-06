@@ -355,6 +355,10 @@ namespace PVZDotNetResGen.Sexy
                         {
                             imageRes.mFrameMap = current.InnerText;
                         }
+                        else if (current.Name == "invscale")
+                        {
+                            imageRes.mInvScale = Convert.ToInt32(current.InnerText);
+                        }
                     }
                 }
                 if (path != null)

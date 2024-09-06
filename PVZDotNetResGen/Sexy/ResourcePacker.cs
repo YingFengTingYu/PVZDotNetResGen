@@ -574,6 +574,7 @@ namespace PVZDotNetResGen.Sexy
             SetValueType<int>(theElement, "enddelay", imageRes.mEndDelay);
             SetStringIfExist(theElement, "perframedelay", imageRes.mPerFrameDelay);
             SetStringIfExist(theElement, "framemap", imageRes.mFrameMap);
+            SetValueType<float>(theElement, "invscale", imageRes.mInvScale);
             return true;
         }
 
