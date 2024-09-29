@@ -171,6 +171,8 @@ namespace PVZDotNetResGen.Sexy
         public string? mPerFrameDelay;
         public string? mFrameMap;
         public float? mInvScale;
+        public int mX;
+        public int mY;
     }
 
     public class SubImageRes : ResBase

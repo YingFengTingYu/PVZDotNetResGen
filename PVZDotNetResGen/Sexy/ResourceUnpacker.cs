@@ -359,6 +359,14 @@ namespace PVZDotNetResGen.Sexy
                         {
                             imageRes.mInvScale = Convert.ToInt32(current.InnerText);
                         }
+                        else if (current.Name == "x")
+                        {
+                            imageRes.mX = Convert.ToInt32(current.InnerText);
+                        }
+                        else if (current.Name == "y")
+                        {
+                            imageRes.mY = Convert.ToInt32(current.InnerText);
+                        }
                     }
                 }
                 if (path != null)
