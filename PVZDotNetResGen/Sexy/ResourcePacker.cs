@@ -88,6 +88,7 @@ namespace PVZDotNetResGen.Sexy
                 List<ResBase?>? resBaseList = AOTJson.TryDeserializeListFromFile<ResBase>(metaFile);
                 if (resBaseList != null)
                 {
+                    Console.WriteLine("Parsing {0}", metaFile);
                     foreach (var resBase in resBaseList)
                     {
                         if (resBase is ImageRes imageResBase)
@@ -137,6 +138,7 @@ namespace PVZDotNetResGen.Sexy
             string[] reanims = Directory.GetFiles(Path.Combine(mUnpackFolderPath, "resources", "reanim"), "*.reanim", SearchOption.TopDirectoryOnly);
             foreach (var reanim in reanims)
             {
+                Console.WriteLine("Parsing {0}", reanim);
                 ParseReanimResource(Path.ChangeExtension(reanim, ".meta.json"));
             }
             string[] musics = Directory.GetFiles(Path.Combine(mUnpackFolderPath, "resources", "music"), "*", SearchOption.TopDirectoryOnly);
@@ -201,10 +203,12 @@ namespace PVZDotNetResGen.Sexy
             {
                 sw.WriteLine("""
                     using System;
+                    using System.CodeDom.Compiler;
                     using Sexy;
 
                     namespace Sexy
                     {
+                        [GeneratedCode(null, null)]
                         public/*internal*/ class AtlasResources
                         {
                             public void ExtractResources()
@@ -368,11 +372,13 @@ namespace PVZDotNetResGen.Sexy
             {
                 sw.Write("""
                     using System;
+                    using System.CodeDom.Compiler;
                     using System.Collections.Generic;
                     using Sexy;
 
                     namespace Sexy
                     {
+                        [GeneratedCode(null, null)]
                         public/*internal*/ class 
                     """);
                 sw.Write(Path.GetFileNameWithoutExtension(path));
@@ -427,6 +433,13 @@ namespace PVZDotNetResGen.Sexy
                     sw.WriteLine("\"] = array;");
                     sw.WriteLine("            for (int i = 0; i < array.Length; i++)");
                     sw.WriteLine("            {");
+                    sw.Write("                if (Resources.");
+                    sw.Write(pair.Value.Item1.ToUpper());
+                    sw.WriteLine(" == null)");
+                    sw.WriteLine("                {");
+                    sw.WriteLine("                    array[i].mpImage = null;");
+                    sw.WriteLine("                    continue;");
+                    sw.WriteLine("                }");
                     sw.Write("                array[i].mpImage = new Image(Resources.");
                     sw.Write(pair.Value.Item1.ToUpper());
                     sw.WriteLine(", array[i].mX, array[i].mY, array[i].mWidth, array[i].mHeight);");
@@ -658,9 +671,40 @@ namespace PVZDotNetResGen.Sexy
                     // 创建所有没有meta的图像的meta
                     List<MaxRectsBinPack.BinRect> sizeList = new List<MaxRectsBinPack.BinRect>();
                     List<MaxRectsBinPack.BinRect> ansList = new List<MaxRectsBinPack.BinRect>();
-                    foreach (var png in Directory.GetFiles(unpackPath, "*.png", SearchOption.TopDirectoryOnly))
+					var pngFiles = Directory.GetFiles(unpackPath, "*.png", SearchOption.TopDirectoryOnly);
+                    foreach (var png in pngFiles)
                     {
-                        string pngMetaPath = Path.ChangeExtension(png, ".subimage.json");
+                        if (!BitmapHelper.Peek(png, out int pngWidth, out int pngHeight))
+                        {
+                            throw new Exception("not a png file: " + png);
+                        }
+                        sizeList.Add(new MaxRectsBinPack.BinRect { width = pngWidth + 2 * extrude, height = pngHeight + 2 * extrude, id = png });
+                    }
+                    var sizeListUnsorted = sizeList.ToList();
+                    sizeList.Sort(static (a, b) =>
+                    {
+                        int thisArea = a.width * a.height;
+                        int otherArea = b.width * b.height;
+                        if (thisArea > otherArea)
+                            return -1;
+                        if (thisArea == otherArea)
+                            return 0;
+                        return 1;
+                    });
+                    MaxRectsBinPack binPack = new MaxRectsBinPack(width, height, false);
+                    int sizeOld = sizeList.Count;
+                    binPack.Insert(sizeList, ansList, MaxRectsBinPack.FreeRectChoiceHeuristic.RectBestAreaFit);
+                    if (sizeOld > ansList.Count)
+                    {
+                        ansList = new List<MaxRectsBinPack.BinRect>();
+                        MaxRectsBinPack binPack2 = new MaxRectsBinPack(width, height, false);
+                        var sizeListUnsortedOld = sizeListUnsorted.ToList();
+                        binPack2.Insert(sizeListUnsorted, ansList, MaxRectsBinPack.FreeRectChoiceHeuristic.RectBestAreaFit);
+                        throw new Exception($"The size of atlas {metaPath} is too small! {sizeListUnsortedOld[ansList.Count].id}");
+                    }
+					foreach (var png in pngFiles) 
+					{
+						string pngMetaPath = Path.ChangeExtension(png, ".subimage.json");
                         SubImageRes? subImageRes = AOTJson.TryDeserializeFromFile<ResBase>(pngMetaPath) as SubImageRes;
                         if (subImageRes == null)
                         {
@@ -678,29 +722,8 @@ namespace PVZDotNetResGen.Sexy
                             };
                             AOTJson.TrySerializeToFile<ResBase>(pngMetaPath, subImageRes);
                         }
-                        if (!BitmapHelper.Peek(png, out int pngWidth, out int pngHeight))
-                        {
-                            throw new Exception("not a png file: " + png);
-                        }
-                        sizeList.Add(new MaxRectsBinPack.BinRect { width = pngWidth + 2 * extrude, height = pngHeight + 2 * extrude, id = png });
-                    }
-                    sizeList.Sort(static (a, b) =>
-                    {
-                        int thisArea = a.width * a.height;
-                        int otherArea = b.width * b.height;
-                        if (thisArea > otherArea)
-                            return -1;
-                        if (thisArea == otherArea)
-                            return 0;
-                        return 1;
-                    });
-                    MaxRectsBinPack binPack = new MaxRectsBinPack(width, height, false);
-                    int sizeOld = sizeList.Count;
-                    binPack.Insert(sizeList, ansList, MaxRectsBinPack.FreeRectChoiceHeuristic.RectBestAreaFit);
-                    if (sizeOld > ansList.Count)
-                    {
-                        throw new Exception($"The size of atlas {metaPath} is too small!");
-                    }
+					}
+					
                     buildInfo.mSubImages = [];
                     buildInfo.mWidth = width;
                     buildInfo.mHeight = height;
